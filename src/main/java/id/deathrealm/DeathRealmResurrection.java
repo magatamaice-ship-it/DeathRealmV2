@@ -69,8 +69,26 @@ public class DeathRealmResurrection {
         );
 
         cinematic.play(player, () -> {
+
             if (!player.isOnline()) {
                 resurrecting.remove(uuid);
+                return;
+            }
+
+            boolean teleported = player.teleport(finalDestination);
+
+            if (!teleported) {
+                plugin.getLogger().severe(
+                        "Gagal memindahkan " + player.getName()
+                        + " ke lokasi kebangkitan. Timer tetap aktif."
+                );
+
+                resurrecting.remove(uuid);
+
+                player.sendMessage(
+                        "§cKebangkitan gagal. Jiwamu masih berada di DeathRealm."
+                );
+
                 return;
             }
 
@@ -84,15 +102,6 @@ public class DeathRealmResurrection {
             player.setFoodLevel(20);
             player.setSaturation(20);
             player.setFallDistance(0);
-
-            boolean teleported = player.teleport(finalDestination);
-
-            if (!teleported) {
-                plugin.getLogger().severe(
-                        "Gagal memindahkan " + player.getName()
-                        + " ke lokasi kebangkitan."
-                );
-            }
 
             plugin.getMessages().sendResurrectionMessage(player);
 
