@@ -9,6 +9,10 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
 public class DeathRealmDeathListener implements Listener {
 
     private final DeathRealm plugin;
@@ -17,6 +21,9 @@ public class DeathRealmDeathListener implements Listener {
     private final DeathRealmProtection protection;
     private final DeathRealmBossBar bossBar;
     private final DeathRealmVisibility visibility;
+    private final DeathRealmCinematic cinematic;
+
+    private final Set<UUID> pendingPlayers = new HashSet<>();
 
     public DeathRealmDeathListener(
             DeathRealm plugin,
@@ -24,7 +31,8 @@ public class DeathRealmDeathListener implements Listener {
             DeathRealmWorld worldManager,
             DeathRealmProtection protection,
             DeathRealmBossBar bossBar,
-            DeathRealmVisibility visibility
+            DeathRealmVisibility visibility,
+            DeathRealmCinematic cinematic
     ) {
         this.plugin = plugin;
         this.timerManager = timerManager;
@@ -32,27 +40,33 @@ public class DeathRealmDeathListener implements Listener {
         this.protection = protection;
         this.bossBar = bossBar;
         this.visibility = visibility;
+        this.cinematic = cinematic;
     }
 
     @EventHandler
     public void onDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
 
-        // Memulai timer 25 menit.
         timerManager.startTimer(player.getUniqueId());
+        pendingPlayers.add(player.getUniqueId());
 
-        // Memperbarui pemisahan pemain hidup dan mati.
-        Bukkit.getScheduler().runTask(
-                plugin,
-                visibility::refreshAll
-        );
+        visibility.refreshAll();
+
+        cinematic.playDeathAnimation(player, () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+
+            player.spigot().respawn();
+        });
     }
 
     @EventHandler
     public void onRespawn(PlayerRespawnEvent event) {
         Player player = event.getPlayer();
 
-        if (!timerManager.hasTimer(player.getUniqueId())) {
+        if (!pendingPlayers.remove(player.getUniqueId())
+                && !timerManager.hasTimer(player.getUniqueId())) {
             return;
         }
 
@@ -66,7 +80,6 @@ public class DeathRealmDeathListener implements Listener {
         }
 
         Location destination = deathWorld.getSpawnLocation();
-
         event.setRespawnLocation(destination);
 
         Bukkit.getScheduler().runTask(plugin, () -> {
