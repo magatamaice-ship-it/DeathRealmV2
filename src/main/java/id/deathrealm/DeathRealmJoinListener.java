@@ -70,7 +70,7 @@ public class DeathRealmJoinListener implements Listener {
             visibility.refreshAll();
 
             player.sendMessage(
-                    "§5Kamu kembali ke DeathRealm!"
+                    "§5Jiwamu kembali ke DeathRealm."
             );
         });
     }
