@@ -16,6 +16,7 @@ public class DeathRealmJoinListener implements Listener {
     private final DeathRealmBossBar bossBar;
     private final DeathRealmVisibility visibility;
     private final DeathRealmResurrection resurrection;
+    private final DeathRealmEntryEffect entryEffect;
 
     public DeathRealmJoinListener(
             DeathRealm plugin,
@@ -33,6 +34,7 @@ public class DeathRealmJoinListener implements Listener {
         this.bossBar = bossBar;
         this.visibility = visibility;
         this.resurrection = resurrection;
+        this.entryEffect = new DeathRealmEntryEffect(plugin);
     }
 
     @EventHandler
@@ -67,6 +69,8 @@ public class DeathRealmJoinListener implements Listener {
 
             protection.preparePlayer(player);
             bossBar.show(player);
+            entryEffect.play(player);
+
             visibility.refreshAll();
 
             player.sendMessage(
