@@ -39,18 +39,25 @@ public class DeathRealmHorizontalBoundary implements Listener {
         safe.setX(Math.max(-LIMIT, Math.min(LIMIT, safe.getX())));
         safe.setZ(Math.max(-LIMIT, Math.min(LIMIT, safe.getZ())));
 
-        player.teleport(safe);
+        event.setTo(safe);
         player.setFallDistance(0);
     }
 
     @EventHandler
     public void onTeleport(PlayerTeleportEvent event) {
-        if (!event.getTo().getWorld().getName()
+        Location destination = event.getTo();
+
+        if (destination == null
+                || destination.getWorld() == null) {
+            return;
+        }
+
+        if (!destination.getWorld().getName()
                 .equalsIgnoreCase("DeathRealm")) {
             return;
         }
 
-        if (outside(event.getTo())) {
+        if (outside(destination)) {
             event.setCancelled(true);
         }
     }
