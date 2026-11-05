@@ -33,16 +33,16 @@ public class DeathRealmResurrection {
         this.cinematic = new DeathRealmResurrectionCinematic(plugin);
     }
 
-    public void resurrect(Player player) {
+    public boolean resurrect(Player player) {
         if (player == null || !player.isOnline()) {
-            return;
+            return false;
         }
 
         UUID uuid = player.getUniqueId();
 
         if (!timerManager.hasTimer(uuid)
                 || !resurrecting.add(uuid)) {
-            return;
+            return false;
         }
 
         Location destination = player.getBedSpawnLocation();
@@ -54,8 +54,9 @@ public class DeathRealmResurrection {
                 plugin.getLogger().severe(
                         "Dunia utama bernama world tidak ditemukan!"
                 );
+
                 resurrecting.remove(uuid);
-                return;
+                return false;
             }
 
             destination = mainWorld.getSpawnLocation();
@@ -84,12 +85,21 @@ public class DeathRealmResurrection {
             player.setSaturation(20);
             player.setFallDistance(0);
 
-            player.teleport(finalDestination);
+            boolean teleported = player.teleport(finalDestination);
+
+            if (!teleported) {
+                plugin.getLogger().severe(
+                        "Gagal memindahkan " + player.getName()
+                        + " ke lokasi kebangkitan."
+                );
+            }
 
             plugin.getMessages().sendResurrectionMessage(player);
 
             resurrecting.remove(uuid);
             visibility.refreshAll();
         });
+
+        return true;
     }
 }
