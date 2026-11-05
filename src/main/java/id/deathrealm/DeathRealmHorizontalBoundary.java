@@ -1,6 +1,7 @@
 package id.deathrealm;
 
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -14,6 +15,11 @@ public class DeathRealmHorizontalBoundary implements Listener {
     public DeathRealmHorizontalBoundary(DeathRealm plugin) {
     }
 
+    private boolean isDeathRealm(World world) {
+        return world != null
+                && world.getName().equalsIgnoreCase("DeathRealm");
+    }
+
     private boolean outside(Location location) {
         return Math.abs(location.getX()) > LIMIT
                 || Math.abs(location.getZ()) > LIMIT;
@@ -23,18 +29,18 @@ public class DeathRealmHorizontalBoundary implements Listener {
     public void onMove(PlayerMoveEvent event) {
         Player player = event.getPlayer();
 
-        if (!player.getWorld().getName()
-                .equalsIgnoreCase("DeathRealm")) {
+        if (!isDeathRealm(player.getWorld())) {
             return;
         }
 
+        Location from = event.getFrom();
         Location to = event.getTo();
 
         if (to == null || !outside(to)) {
             return;
         }
 
-        Location safe = event.getFrom().clone();
+        Location safe = to.clone();
 
         safe.setX(Math.max(-LIMIT, Math.min(LIMIT, safe.getX())));
         safe.setZ(Math.max(-LIMIT, Math.min(LIMIT, safe.getZ())));
@@ -47,13 +53,7 @@ public class DeathRealmHorizontalBoundary implements Listener {
     public void onTeleport(PlayerTeleportEvent event) {
         Location destination = event.getTo();
 
-        if (destination == null
-                || destination.getWorld() == null) {
-            return;
-        }
-
-        if (!destination.getWorld().getName()
-                .equalsIgnoreCase("DeathRealm")) {
+        if (!isDeathRealm(destination.getWorld())) {
             return;
         }
 
