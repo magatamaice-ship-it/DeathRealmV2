@@ -32,6 +32,10 @@ public class DeathRealmVisibility implements Listener {
     }
 
     public void updateVisibility(Player viewer) {
+        if (viewer == null || !viewer.isOnline()) {
+            return;
+        }
+
         boolean viewerDead = isDead(viewer);
 
         for (Player target : Bukkit.getOnlinePlayers()) {
