@@ -36,8 +36,20 @@ public class DeathRealmVerticalBoundary implements Listener {
             return;
         }
 
-        if (!destination.getWorld().getName()
+        if (destination.getWorld().getName()
                 .equalsIgnoreCase("DeathRealm")) {
+
+            if (destination.getY() < MIN_Y
+                    || destination.getY() > MAX_Y) {
+                event.setCancelled(true);
+            }
+
+            return;
+        }
+
+        // Izinkan teleportasi plugin untuk proses kebangkitan.
+        if (event.getCause()
+                != PlayerTeleportEvent.TeleportCause.PLUGIN) {
             event.setCancelled(true);
         }
     }
@@ -51,29 +63,29 @@ public class DeathRealmVerticalBoundary implements Listener {
             return;
         }
 
-        Location destination = event.getTo();
+        Location from = event.getFrom();
+        Location to = event.getTo();
 
-        if (destination == null) {
+        if (to == null) {
             return;
         }
 
-        if (destination.getY() >= MIN_Y
-                && destination.getY() <= MAX_Y) {
+        if (to.getY() >= MIN_Y && to.getY() <= MAX_Y) {
             return;
         }
 
-        Location safeLocation = event.getFrom().clone();
+        Location safe = from.clone();
 
-        if (safeLocation.getY() < MIN_Y
-                || safeLocation.getY() > MAX_Y) {
+        if (safe.getY() < MIN_Y || safe.getY() > MAX_Y) {
             World world = player.getWorld();
-            safeLocation = world.getSpawnLocation();
+            safe = world.getSpawnLocation();
         }
 
-        safeLocation.setX(safeLocation.getBlockX() + 0.5);
-        safeLocation.setZ(safeLocation.getBlockZ() + 0.5);
+        safe.setX(safe.getBlockX() + 0.5);
+        safe.setZ(safe.getBlockZ() + 0.5);
+        safe.setY(Math.max(MIN_Y, Math.min(MAX_Y, safe.getY())));
 
-        player.teleport(safeLocation);
+        event.setTo(safe);
         player.setFallDistance(0);
     }
 }
