@@ -45,12 +45,38 @@ public class DeathTimerManager {
     }
 
     public boolean isExpired(UUID playerId) {
-        return hasTimer(playerId) && getRemainingTime(playerId) <= 0L;
+        return hasTimer(playerId)
+                && getRemainingTime(playerId) <= 0L;
     }
 
     public void removeTimer(UUID playerId) {
-        timers.remove(playerId);
-        saveTimers();
+        if (timers.remove(playerId) != null) {
+            saveTimers();
+        }
+    }
+
+    public void saveTimers() {
+        if (!plugin.getDataFolder().exists()) {
+            plugin.getDataFolder().mkdirs();
+        }
+
+        YamlConfiguration config = new YamlConfiguration();
+
+        for (Map.Entry<UUID, Long> entry : timers.entrySet()) {
+            config.set(
+                    entry.getKey().toString(),
+                    entry.getValue()
+            );
+        }
+
+        try {
+            config.save(file);
+        } catch (IOException exception) {
+            plugin.getLogger().severe(
+                    "Gagal menyimpan timers.yml: "
+                    + exception.getMessage()
+            );
+        }
     }
 
     private void loadTimers() {
@@ -79,23 +105,8 @@ public class DeathTimerManager {
         }
 
         plugin.getLogger().info(
-                "Berhasil memuat " + timers.size() + " timer kematian."
+                "Berhasil memuat " + timers.size()
+                + " timer kematian."
         );
-    }
-
-    private void saveTimers() {
-        YamlConfiguration config = new YamlConfiguration();
-
-        for (Map.Entry<UUID, Long> entry : timers.entrySet()) {
-            config.set(entry.getKey().toString(), entry.getValue());
-        }
-
-        try {
-            config.save(file);
-        } catch (IOException exception) {
-            plugin.getLogger().severe(
-                    "Gagal menyimpan timers.yml: " + exception.getMessage()
-            );
-        }
     }
 }
