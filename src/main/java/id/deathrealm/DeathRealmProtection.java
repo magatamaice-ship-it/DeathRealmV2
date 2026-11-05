@@ -1,3 +1,4 @@
+
 package id.deathrealm;
 
 import org.bukkit.GameMode;
@@ -9,13 +10,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.InventoryOpenEvent;
-import org.bukkit.event.player.PlayerDropItemEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.projectiles.ProjectileSource;
 
@@ -37,7 +32,7 @@ public class DeathRealmProtection implements Listener {
             return;
         }
 
-        player.setGameMode(GameMode.ADVENTURE);
+        player.setGameMode(GameMode.CREATIVE);
         player.setAllowFlight(true);
         player.setFlying(true);
         player.setFoodLevel(20);
@@ -82,11 +77,8 @@ public class DeathRealmProtection implements Listener {
         boolean targetDead = plugin.getTimerManager()
                 .hasTimer(target.getUniqueId());
 
-        if (attackerDead != targetDead) {
-            event.setCancelled(true);
-        }
-
-        if (isInDeathRealm(attacker)
+        if (attackerDead != targetDead
+                || isInDeathRealm(attacker)
                 || isInDeathRealm(target)) {
             event.setCancelled(true);
         }
@@ -102,74 +94,24 @@ public class DeathRealmProtection implements Listener {
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
-        if (isInDeathRealm(event.getPlayer())) {
-            event.setCancelled(true);
-        }
+        // Creative players can break blocks in DeathRealm.
     }
 
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
-        if (isInDeathRealm(event.getPlayer())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler
-    public void onInventoryOpen(InventoryOpenEvent event) {
-        if (event.getPlayer() instanceof Player player
-                && isInDeathRealm(player)) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler
-    public void onInventoryClick(InventoryClickEvent event) {
-        if (event.getWhoClicked() instanceof Player player
-                && isInDeathRealm(player)) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler
-    public void onInventoryDrag(InventoryDragEvent event) {
-        if (event.getWhoClicked() instanceof Player player
-                && isInDeathRealm(player)) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler
-    public void onDrop(PlayerDropItemEvent event) {
-        if (isInDeathRealm(event.getPlayer())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler
-    public void onPickup(EntityPickupItemEvent event) {
-        if (event.getEntity() instanceof Player player
-                && isInDeathRealm(player)) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler
-    public void onInteract(PlayerInteractEvent event) {
-        if (isInDeathRealm(event.getPlayer())) {
-            event.setCancelled(true);
-        }
+        // Creative players can place blocks in DeathRealm.
     }
 
     @EventHandler
     public void onMove(PlayerMoveEvent event) {
-        if (!isInDeathRealm(event.getPlayer())) {
+        Player player = event.getPlayer();
+
+        if (!isInDeathRealm(player)) {
             return;
         }
 
-        Player player = event.getPlayer();
-
-        if (player.getGameMode() != GameMode.ADVENTURE) {
-            player.setGameMode(GameMode.ADVENTURE);
+        if (player.getGameMode() != GameMode.CREATIVE) {
+            player.setGameMode(GameMode.CREATIVE);
         }
 
         if (!player.getAllowFlight()) {
@@ -180,4 +122,4 @@ public class DeathRealmProtection implements Listener {
             player.setFlying(true);
         }
     }
-            }
+}
