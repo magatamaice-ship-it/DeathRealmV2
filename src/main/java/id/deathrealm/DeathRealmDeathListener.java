@@ -5,6 +5,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
@@ -45,12 +46,17 @@ public class DeathRealmDeathListener implements Listener {
         this.entryEffect = new DeathRealmEntryEffect(plugin);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
+        UUID uuid = player.getUniqueId();
 
-        timerManager.startTimer(player.getUniqueId());
-        pendingPlayers.add(player.getUniqueId());
+        if (pendingPlayers.contains(uuid)) {
+            return;
+        }
+
+        timerManager.startTimer(uuid);
+        pendingPlayers.add(uuid);
 
         visibility.refreshAll();
 
@@ -66,9 +72,10 @@ public class DeathRealmDeathListener implements Listener {
     @EventHandler
     public void onRespawn(PlayerRespawnEvent event) {
         Player player = event.getPlayer();
+        UUID uuid = player.getUniqueId();
 
-        if (!pendingPlayers.remove(player.getUniqueId())
-                && !timerManager.hasTimer(player.getUniqueId())) {
+        if (!pendingPlayers.remove(uuid)
+                && !timerManager.hasTimer(uuid)) {
             return;
         }
 
@@ -82,17 +89,34 @@ public class DeathRealmDeathListener implements Listener {
         }
 
         Location destination = deathWorld.getSpawnLocation();
+
         event.setRespawnLocation(destination);
 
         Bukkit.getScheduler().runTask(plugin, () -> {
+
             if (!player.isOnline()) {
                 return;
+            }
+
+            if (!player.getWorld().equals(deathWorld)) {
+                boolean teleported = player.teleport(destination);
+
+                if (!teleported) {
+                    plugin.getLogger().severe(
+                            "Gagal memindahkan "
+                            + player.getName()
+                            + " ke DeathRealm setelah respawn."
+                    );
+                    return;
+                }
             }
 
             protection.preparePlayer(player);
             bossBar.show(player);
             entryEffect.play(player);
+
             plugin.getMessages().sendEntryMessage(player);
+
             visibility.refreshAll();
         });
     }
