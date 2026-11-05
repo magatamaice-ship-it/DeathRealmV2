@@ -25,11 +25,6 @@ public class DeathRealmVisibility implements Listener {
         return timerManager.hasTimer(player.getUniqueId());
     }
 
-    private boolean isInDeathRealm(Player player) {
-        return player.getWorld().getName()
-                .equalsIgnoreCase("DeathRealm");
-    }
-
     public void refreshAll() {
         for (Player viewer : Bukkit.getOnlinePlayers()) {
             updateVisibility(viewer);
@@ -37,16 +32,14 @@ public class DeathRealmVisibility implements Listener {
     }
 
     public void updateVisibility(Player viewer) {
-        boolean viewerDead = isDead(viewer)
-                && isInDeathRealm(viewer);
+        boolean viewerDead = isDead(viewer);
 
         for (Player target : Bukkit.getOnlinePlayers()) {
             if (viewer.equals(target)) {
                 continue;
             }
 
-            boolean targetDead = isDead(target)
-                    && isInDeathRealm(target);
+            boolean targetDead = isDead(target);
 
             if (viewerDead == targetDead) {
                 viewer.showPlayer(plugin, target);
