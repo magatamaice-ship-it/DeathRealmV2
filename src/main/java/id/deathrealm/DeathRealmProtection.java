@@ -1,4 +1,3 @@
-
 package id.deathrealm;
 
 import org.bukkit.GameMode;
@@ -6,12 +5,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.projectiles.ProjectileSource;
 
 public class DeathRealmProtection implements Listener {
@@ -32,7 +28,7 @@ public class DeathRealmProtection implements Listener {
             return;
         }
 
-        player.setGameMode(GameMode.CREATIVE);
+        player.setGameMode(GameMode.ADVENTURE);
         player.setAllowFlight(true);
         player.setFlying(true);
         player.setFoodLevel(20);
@@ -89,37 +85,6 @@ public class DeathRealmProtection implements Listener {
         if (event.getEntity() instanceof Player player
                 && isInDeathRealm(player)) {
             event.setCancelled(true);
-        }
-    }
-
-    @EventHandler
-    public void onBlockBreak(BlockBreakEvent event) {
-        // Creative players can break blocks in DeathRealm.
-    }
-
-    @EventHandler
-    public void onBlockPlace(BlockPlaceEvent event) {
-        // Creative players can place blocks in DeathRealm.
-    }
-
-    @EventHandler
-    public void onMove(PlayerMoveEvent event) {
-        Player player = event.getPlayer();
-
-        if (!isInDeathRealm(player)) {
-            return;
-        }
-
-        if (player.getGameMode() != GameMode.CREATIVE) {
-            player.setGameMode(GameMode.CREATIVE);
-        }
-
-        if (!player.getAllowFlight()) {
-            player.setAllowFlight(true);
-        }
-
-        if (!player.isFlying()) {
-            player.setFlying(true);
         }
     }
 }
