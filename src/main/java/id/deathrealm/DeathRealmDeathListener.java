@@ -92,6 +92,7 @@ public class DeathRealmDeathListener implements Listener {
             protection.preparePlayer(player);
             bossBar.show(player);
             entryEffect.play(player);
+            plugin.getMessages().sendEntryMessage(player);
             visibility.refreshAll();
         });
     }
