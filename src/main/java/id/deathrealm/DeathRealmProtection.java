@@ -2,6 +2,7 @@ package id.deathrealm;
 
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -17,7 +18,6 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.projectiles.ProjectileSource;
-import org.bukkit.entity.Projectile;
 
 public class DeathRealmProtection implements Listener {
 
@@ -83,6 +83,11 @@ public class DeathRealmProtection implements Listener {
                 .hasTimer(target.getUniqueId());
 
         if (attackerDead != targetDead) {
+            event.setCancelled(true);
+        }
+
+        if (isInDeathRealm(attacker)
+                || isInDeathRealm(target)) {
             event.setCancelled(true);
         }
     }
@@ -175,4 +180,4 @@ public class DeathRealmProtection implements Listener {
             player.setFlying(true);
         }
     }
-}
+            }
