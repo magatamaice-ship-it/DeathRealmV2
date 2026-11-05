@@ -1,10 +1,8 @@
 package id.deathrealm;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.block.Block;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,14 +25,28 @@ public class DeathRealmIsland {
     }
 
     public void generate() {
+        generate(null);
+    }
+
+    public void generate(Runnable onComplete) {
         if (world == null) {
-            plugin.getLogger().warning("Dunia DeathRealm belum tersedia!");
+            plugin.getLogger().warning(
+                    "Dunia DeathRealm belum tersedia!"
+            );
             return;
         }
 
-        if (world.getBlockAt(CENTER_X, SURFACE_Y, CENTER_Z).getType()
-                != Material.AIR) {
-            plugin.getLogger().info("Pulau DeathRealm sudah tersedia.");
+        if (world.getBlockAt(
+                CENTER_X, SURFACE_Y, CENTER_Z
+        ).getType() != Material.AIR) {
+
+            plugin.getLogger().info(
+                    "Pulau DeathRealm sudah tersedia."
+            );
+
+            if (onComplete != null) {
+                onComplete.run();
+            }
             return;
         }
 
@@ -58,7 +70,12 @@ public class DeathRealmIsland {
                     plugin.getLogger().info(
                             "Daratan utama DeathRealm selesai dibuat!"
                     );
+
                     cancel();
+
+                    if (onComplete != null) {
+                        onComplete.run();
+                    }
                 }
             }
         }.runTaskTimer(plugin, 1L, 1L);
@@ -80,13 +97,18 @@ public class DeathRealmIsland {
 
                 if (distance < RADIUS - 5) {
                     blocks.add(new BlockData(
-                            x, SURFACE_Y - 1, z, Material.DEEPSLATE
+                            x, SURFACE_Y - 1, z,
+                            Material.DEEPSLATE
                     ));
+
                     blocks.add(new BlockData(
-                            x, SURFACE_Y - 2, z, Material.DEEPSLATE
+                            x, SURFACE_Y - 2, z,
+                            Material.DEEPSLATE
                     ));
+
                     blocks.add(new BlockData(
-                            x, SURFACE_Y - 3, z, Material.COBBLED_DEEPSLATE
+                            x, SURFACE_Y - 3, z,
+                            Material.COBBLED_DEEPSLATE
                     ));
                 }
             }
@@ -99,7 +121,12 @@ public class DeathRealmIsland {
         private final int z;
         private final Material material;
 
-        private BlockData(int x, int y, int z, Material material) {
+        private BlockData(
+                int x,
+                int y,
+                int z,
+                Material material
+        ) {
             this.x = x;
             this.y = y;
             this.z = z;
