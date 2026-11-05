@@ -4,11 +4,17 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
 public class DeathRealmTimerTask {
 
     private final DeathRealm plugin;
     private final DeathTimerManager timerManager;
     private final DeathRealmResurrection resurrection;
+
+    private final Set<UUID> processed = new HashSet<>();
 
     private BukkitTask task;
 
@@ -37,12 +43,18 @@ public class DeathRealmTimerTask {
 
     private void checkTimers() {
         for (Player player : Bukkit.getOnlinePlayers()) {
+            UUID uuid = player.getUniqueId();
 
-            if (!timerManager.hasTimer(player.getUniqueId())) {
+            if (!timerManager.hasTimer(uuid)) {
+                processed.remove(uuid);
                 continue;
             }
 
-            if (timerManager.isExpired(player.getUniqueId())) {
+            if (!timerManager.isExpired(uuid)) {
+                continue;
+            }
+
+            if (processed.add(uuid)) {
                 resurrection.resurrect(player);
             }
         }
@@ -53,5 +65,7 @@ public class DeathRealmTimerTask {
             task.cancel();
             task = null;
         }
+
+        processed.clear();
     }
 }
