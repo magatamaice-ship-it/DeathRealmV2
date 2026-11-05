@@ -1,158 +1,155 @@
 package id.deathrealm;
 
-import org.bukkit.Material;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.ArrayList;
-import java.util.List;
+public final class DeathRealm extends JavaPlugin {
 
-public class DeathRealmIsland {
+    private static DeathRealm instance;
 
-    private final DeathRealm plugin;
-    private final World world;
+    private DeathTimerManager timerManager;
+    private DeathRealmWorld worldManager;
+    private DeathRealmProtection protection;
+    private DeathRealmBossBar bossBar;
+    private DeathRealmVisibility visibility;
+    private DeathRealmResurrection resurrection;
+    private DeathRealmTimerTask timerTask;
+    private DeathRealmCoordinateDisplay coordinateDisplay;
+    private DeathRealmCinematic cinematic;
+    private DeathRealmStructureManager structureManager;
+    private DeathRealmAtmosphere atmosphere;
+    private DeathRealmMessages messages;
+    private DeathRealmWarningTask warningTask;
 
-    private final List<BlockData> blocks = new ArrayList<>();
+    @Override
+    public void onEnable() {
+        instance = this;
 
-    private static final int CENTER_X = 0;
-    private static final int CENTER_Z = 0;
-    private static final int SURFACE_Y = 90;
-    private static final int RADIUS = 80;
-    private static final int DEPTH = 24;
+        getLogger().info("Memulai DeathRealmV2...");
 
-    public DeathRealmIsland(DeathRealm plugin, World world) {
-        this.plugin = plugin;
-        this.world = world;
-    }
+        timerManager = new DeathTimerManager(this);
 
-    public void generate() {
-        generate(null);
-    }
+        worldManager = new DeathRealmWorld(this);
+        worldManager.createWorld();
 
-    public void generate(Runnable onComplete) {
-        if (world == null) {
-            plugin.getLogger().warning(
-                    "Dunia DeathRealm belum tersedia!"
-            );
+        World deathWorld = worldManager.getWorld();
+
+        if (deathWorld == null) {
+            getLogger().severe("Dunia DeathRealm gagal dimuat!");
+            Bukkit.getPluginManager().disablePlugin(this);
             return;
         }
 
-        if (world.getBlockAt(
-                CENTER_X, SURFACE_Y, CENTER_Z
-        ).getType() != Material.AIR) {
+        structureManager = new DeathRealmStructureManager(this);
+        structureManager.generate(deathWorld);
 
-            plugin.getLogger().info(
-                    "Pulau DeathRealm sudah tersedia."
+        new DeathRealmBoundary(this, deathWorld).applyBoundary();
+
+        protection = new DeathRealmProtection(this);
+        visibility = new DeathRealmVisibility(this, timerManager);
+
+        bossBar = new DeathRealmBossBar(this, timerManager);
+        cinematic = new DeathRealmCinematic(this);
+        atmosphere = new DeathRealmAtmosphere(this);
+        messages = new DeathRealmMessages(this);
+        warningTask = new DeathRealmWarningTask(this, timerManager);
+
+        resurrection = new DeathRealmResurrection(
+                this,
+                timerManager,
+                bossBar,
+                visibility
+        );
+
+        timerTask = new DeathRealmTimerTask(
+                this,
+                timerManager,
+                resurrection
+        );
+
+        coordinateDisplay = new DeathRealmCoordinateDisplay(
+                this,
+                timerManager
+        );
+
+        Bukkit.getPluginManager().registerEvents(protection, this);
+        Bukkit.getPluginManager().registerEvents(visibility, this);
+
+        Bukkit.getPluginManager().registerEvents(
+                new DeathRealmVerticalBoundary(this), this
+        );
+
+        Bukkit.getPluginManager().registerEvents(
+                new DeathRealmHorizontalBoundary(this), this
+        );
+
+        Bukkit.getPluginManager().registerEvents(
+                new DeathRealmPortalProtection(this), this
+        );
+
+        Bukkit.getPluginManager().registerEvents(
+                new DeathRealmCommandProtection(this), this
+        );
+
+        Bukkit.getPluginManager().registerEvents(
+                new DeathRealmDeathListener(
+                        this, timerManager, worldManager,
+                        protection, bossBar, visibility, cinematic
+                ), this
+        );
+
+        Bukkit.getPluginManager().registerEvents(
+                new DeathRealmJoinListener(
+                        this, timerManager, worldManager,
+                        protection, bossBar, visibility, resurrection
+                ), this
+        );
+
+        bossBar.start();
+        timerTask.start();
+        coordinateDisplay.start();
+        atmosphere.start();
+        warningTask.start();
+
+        if (getCommand("lahirkankembali") != null) {
+            getCommand("lahirkankembali").setExecutor(
+                    new DeathRealmCommand(this, resurrection)
             );
-
-            if (onComplete != null) {
-                onComplete.run();
-            }
-            return;
         }
 
-        prepareBlocks();
+        visibility.refreshAll();
 
-        new BukkitRunnable() {
-            private int index = 0;
-
-            @Override
-            public void run() {
-                int limit = Math.min(
-                        index + 500,
-                        blocks.size()
-                );
-
-                while (index < limit) {
-                    BlockData data = blocks.get(index++);
-
-                    world.getBlockAt(
-                            data.x,
-                            data.y,
-                            data.z
-                    ).setType(data.material, false);
-                }
-
-                if (index >= blocks.size()) {
-                    plugin.getLogger().info(
-                            "Pulau DeathRealm selesai dibuat!"
-                    );
-
-                    cancel();
-
-                    if (onComplete != null) {
-                        onComplete.run();
-                    }
-                }
-            }
-        }.runTaskTimer(plugin, 1L, 1L);
+        getLogger().info("DeathRealmV2 berhasil diaktifkan!");
     }
 
-    private void prepareBlocks() {
-        for (int y = 0; y <= DEPTH; y++) {
+    @Override
+    public void onDisable() {
+        if (timerTask != null) timerTask.stop();
+        if (bossBar != null) bossBar.stop();
+        if (coordinateDisplay != null) coordinateDisplay.stop();
+        if (atmosphere != null) atmosphere.stop();
+        if (warningTask != null) warningTask.stop();
+        if (timerManager != null) timerManager.saveTimers();
 
-            double progress = (double) y / DEPTH;
+        instance = null;
 
-            int currentRadius = Math.max(
-                    2,
-                    (int) (RADIUS * (1.0 - progress))
-            );
-
-            for (int x = -currentRadius;
-                 x <= currentRadius; x++) {
-
-                for (int z = -currentRadius;
-                     z <= currentRadius; z++) {
-
-                    double distance = Math.sqrt(
-                            x * x + z * z
-                    );
-
-                    if (distance > currentRadius) {
-                        continue;
-                    }
-
-                    Material material;
-
-                    if (y == 0) {
-                        material = Material.GRASS_BLOCK;
-                    } else if (y <= 3) {
-                        material = Material.DIRT;
-                    } else if (y <= 7) {
-                        material = Material.STONE;
-                    } else if (y <= 15) {
-                        material = Material.DEEPSLATE;
-                    } else {
-                        material = Material.DEEPSLATE_BRICKS;
-                    }
-
-                    blocks.add(new BlockData(
-                            CENTER_X + x,
-                            SURFACE_Y - y,
-                            CENTER_Z + z,
-                            material
-                    ));
-                }
-            }
-        }
+        getLogger().info("DeathRealmV2 dinonaktifkan.");
     }
 
-    private static class BlockData {
-        private final int x;
-        private final int y;
-        private final int z;
-        private final Material material;
+    public static DeathRealm getInstance() {
+        return instance;
+    }
 
-        private BlockData(
-                int x,
-                int y,
-                int z,
-                Material material
-        ) {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.material = material;
-        }
+    public DeathTimerManager getTimerManager() {
+        return timerManager;
+    }
+
+    public DeathRealmMessages getMessages() {
+        return messages;
+    }
+
+    public DeathRealmWarningTask getWarningTask() {
+        return warningTask;
     }
 }
