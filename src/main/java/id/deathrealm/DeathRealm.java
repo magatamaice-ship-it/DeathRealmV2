@@ -78,6 +78,11 @@ public final class DeathRealm extends JavaPlugin {
         );
 
         Bukkit.getPluginManager().registerEvents(
+                new DeathRealmPortalProtection(this),
+                this
+        );
+
+        Bukkit.getPluginManager().registerEvents(
                 new DeathRealmDeathListener(
                         this,
                         timerManager,
@@ -135,6 +140,10 @@ public final class DeathRealm extends JavaPlugin {
 
         if (atmosphere != null) {
             atmosphere.stop();
+        }
+
+        if (timerManager != null) {
+            timerManager.saveTimers();
         }
 
         instance = null;
