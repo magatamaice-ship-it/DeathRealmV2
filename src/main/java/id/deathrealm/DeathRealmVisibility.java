@@ -6,6 +6,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 public class DeathRealmVisibility implements Listener {
 
@@ -20,6 +21,15 @@ public class DeathRealmVisibility implements Listener {
         this.timerManager = timerManager;
     }
 
+    private boolean isDead(Player player) {
+        return timerManager.hasTimer(player.getUniqueId());
+    }
+
+    private boolean isInDeathRealm(Player player) {
+        return player.getWorld().getName()
+                .equalsIgnoreCase("DeathRealm");
+    }
+
     public void refreshAll() {
         for (Player viewer : Bukkit.getOnlinePlayers()) {
             updateVisibility(viewer);
@@ -27,18 +37,16 @@ public class DeathRealmVisibility implements Listener {
     }
 
     public void updateVisibility(Player viewer) {
-        boolean viewerDead = timerManager.hasTimer(
-                viewer.getUniqueId()
-        );
+        boolean viewerDead = isDead(viewer)
+                && isInDeathRealm(viewer);
 
         for (Player target : Bukkit.getOnlinePlayers()) {
             if (viewer.equals(target)) {
                 continue;
             }
 
-            boolean targetDead = timerManager.hasTimer(
-                    target.getUniqueId()
-            );
+            boolean targetDead = isDead(target)
+                    && isInDeathRealm(target);
 
             if (viewerDead == targetDead) {
                 viewer.showPlayer(plugin, target);
@@ -50,11 +58,25 @@ public class DeathRealmVisibility implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        Bukkit.getScheduler().runTask(plugin, this::refreshAll);
+        Bukkit.getScheduler().runTask(
+                plugin,
+                this::refreshAll
+        );
     }
 
     @EventHandler
     public void onWorldChange(PlayerChangedWorldEvent event) {
-        Bukkit.getScheduler().runTask(plugin, this::refreshAll);
+        Bukkit.getScheduler().runTask(
+                plugin,
+                this::refreshAll
+        );
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        Bukkit.getScheduler().runTask(
+                plugin,
+                this::refreshAll
+        );
     }
 }
