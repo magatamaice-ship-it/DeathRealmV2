@@ -71,6 +71,15 @@ public class DeathRealmJoinListener implements Listener {
             bossBar.show(player);
             entryEffect.play(player);
 
+            plugin.getMessages().sendEntryMessage(player);
+
+            DeathRealmWarningTask warningTask =
+                    plugin.getWarningTask();
+
+            if (warningTask != null) {
+                warningTask.checkPlayer(player);
+            }
+
             visibility.refreshAll();
 
             player.sendMessage(
