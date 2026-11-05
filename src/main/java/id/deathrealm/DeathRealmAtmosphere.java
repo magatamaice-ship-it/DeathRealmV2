@@ -42,13 +42,14 @@ public class DeathRealmAtmosphere {
 
     private void spawnAtmosphere() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (!player.getWorld().getName().equalsIgnoreCase("DeathRealm")) {
+            if (!player.getWorld().getName()
+                    .equalsIgnoreCase("DeathRealm")) {
                 continue;
             }
 
             player.getWorld().spawnParticle(
                     Particle.ASH,
-                    player.getLocation().add(
+                    player.getLocation().clone().add(
                             random.nextDouble() * 12 - 6,
                             random.nextDouble() * 4,
                             random.nextDouble() * 12 - 6
@@ -59,12 +60,23 @@ public class DeathRealmAtmosphere {
                     1.5,
                     0.01
             );
+
+            player.getWorld().spawnParticle(
+                    Particle.SOUL,
+                    player.getLocation().clone().add(0, 1, 0),
+                    2,
+                    0.5,
+                    0.8,
+                    0.5,
+                    0.01
+            );
         }
     }
 
     private void playAmbientSound() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (!player.getWorld().getName().equalsIgnoreCase("DeathRealm")) {
+            if (!player.getWorld().getName()
+                    .equalsIgnoreCase("DeathRealm")) {
                 continue;
             }
 
