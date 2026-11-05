@@ -22,10 +22,8 @@ public final class DeathRealm extends JavaPlugin {
 
         getLogger().info("Memulai DeathRealmV2...");
 
-        // Penyimpanan timer
         timerManager = new DeathTimerManager(this);
 
-        // Membuat dunia DeathRealm
         worldManager = new DeathRealmWorld(this);
         worldManager.createWorld();
 
@@ -37,16 +35,14 @@ public final class DeathRealm extends JavaPlugin {
             return;
         }
 
-        // Membuat pulau dan pembatas
         new DeathRealmIsland(this, deathWorld).generate();
         new DeathRealmBoundary(this, deathWorld).applyBoundary();
 
-        // Sistem pemain
         protection = new DeathRealmProtection(this);
         visibility = new DeathRealmVisibility(this, timerManager);
 
-        // Sistem timer dan BossBar
         bossBar = new DeathRealmBossBar(this, timerManager);
+
         resurrection = new DeathRealmResurrection(
                 this,
                 timerManager,
@@ -60,13 +56,8 @@ public final class DeathRealm extends JavaPlugin {
                 resurrection
         );
 
-        // Mendaftarkan listener
         Bukkit.getPluginManager().registerEvents(protection, this);
-
-        Bukkit.getPluginManager().registerEvents(
-                visibility,
-                this
-        );
+        Bukkit.getPluginManager().registerEvents(visibility, this);
 
         Bukkit.getPluginManager().registerEvents(
                 new DeathRealmDeathListener(
@@ -80,11 +71,22 @@ public final class DeathRealm extends JavaPlugin {
                 this
         );
 
-        // Mengaktifkan sistem
+        Bukkit.getPluginManager().registerEvents(
+                new DeathRealmJoinListener(
+                        this,
+                        timerManager,
+                        worldManager,
+                        protection,
+                        bossBar,
+                        visibility,
+                        resurrection
+                ),
+                this
+        );
+
         bossBar.start();
         timerTask.start();
 
-        // Mendaftarkan perintah admin
         if (getCommand("lahirkankembali") != null) {
             getCommand("lahirkankembali").setExecutor(
                     new DeathRealmCommand(this, resurrection)
@@ -106,8 +108,9 @@ public final class DeathRealm extends JavaPlugin {
             bossBar.stop();
         }
 
-        getLogger().info("DeathRealmV2 dinonaktifkan.");
         instance = null;
+
+        getLogger().info("DeathRealmV2 dinonaktifkan.");
     }
 
     public static DeathRealm getInstance() {
