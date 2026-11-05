@@ -42,6 +42,7 @@ public class DeathRealmJoinListener implements Listener {
         Player player = event.getPlayer();
 
         Bukkit.getScheduler().runTask(plugin, () -> {
+
             if (!player.isOnline()) {
                 return;
             }
@@ -62,13 +63,34 @@ public class DeathRealmJoinListener implements Listener {
                 plugin.getLogger().severe(
                         "Dunia DeathRealm tidak tersedia saat pemain masuk!"
                 );
+
+                player.sendMessage(
+                        "§cDeathRealm sedang tidak tersedia. Hubungi admin."
+                );
+
                 return;
             }
 
-            player.teleport(deathWorld.getSpawnLocation());
+            boolean teleported = player.teleport(
+                    deathWorld.getSpawnLocation()
+            );
+
+            if (!teleported
+                    || !player.getWorld().equals(deathWorld)) {
+
+                plugin.getLogger().severe(
+                        "Gagal mengembalikan "
+                        + player.getName()
+                        + " ke DeathRealm saat login."
+                );
+
+                return;
+            }
 
             protection.preparePlayer(player);
+
             bossBar.show(player);
+
             entryEffect.play(player);
 
             plugin.getMessages().sendEntryMessage(player);
