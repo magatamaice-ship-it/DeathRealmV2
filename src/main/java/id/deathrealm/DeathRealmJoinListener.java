@@ -81,10 +81,6 @@ public class DeathRealmJoinListener implements Listener {
             }
 
             visibility.refreshAll();
-
-            player.sendMessage(
-                    "§5Jiwamu kembali ke DeathRealm."
-            );
         });
     }
 }
