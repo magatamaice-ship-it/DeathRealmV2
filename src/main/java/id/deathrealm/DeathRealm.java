@@ -19,6 +19,7 @@ public final class DeathRealm extends JavaPlugin {
     private DeathRealmCinematic cinematic;
     private DeathRealmStructureManager structureManager;
     private DeathRealmAtmosphere atmosphere;
+    private DeathRealmMessages messages;
 
     @Override
     public void onEnable() {
@@ -50,6 +51,7 @@ public final class DeathRealm extends JavaPlugin {
         bossBar = new DeathRealmBossBar(this, timerManager);
         cinematic = new DeathRealmCinematic(this);
         atmosphere = new DeathRealmAtmosphere(this);
+        messages = new DeathRealmMessages(this);
 
         resurrection = new DeathRealmResurrection(
                 this,
@@ -168,4 +170,8 @@ public final class DeathRealm extends JavaPlugin {
     public DeathTimerManager getTimerManager() {
         return timerManager;
     }
+
+    public DeathRealmMessages getMessages() {
+        return messages;
     }
+}
