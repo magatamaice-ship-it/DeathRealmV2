@@ -40,20 +40,28 @@ public class DeathRealmWarningTask {
         );
     }
 
+    public void checkPlayer(Player player) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+
+        UUID uuid = player.getUniqueId();
+
+        if (!timerManager.hasTimer(uuid)) {
+            warnedPlayers.remove(uuid);
+            return;
+        }
+
+        if (timerManager.getRemainingTime(uuid) <= WARNING_TIME
+                && warnedPlayers.add(uuid)) {
+
+            plugin.getMessages().sendAlmostExpiredMessage(player);
+        }
+    }
+
     private void checkWarnings() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            UUID uuid = player.getUniqueId();
-
-            if (!timerManager.hasTimer(uuid)) {
-                warnedPlayers.remove(uuid);
-                continue;
-            }
-
-            if (timerManager.getRemainingTime(uuid) <= WARNING_TIME
-                    && warnedPlayers.add(uuid)) {
-
-                plugin.getMessages().sendAlmostExpiredMessage(player);
-            }
+            checkPlayer(player);
         }
     }
 
