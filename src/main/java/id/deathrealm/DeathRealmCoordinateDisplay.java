@@ -73,17 +73,13 @@ public class DeathRealmCoordinateDisplay {
                 );
             }
 
-            String message;
-
             if (coordinates.isEmpty()) {
-                message = viewerDead
-                        ? "Pemain mati lainnya: tidak ada"
-                        : "Pemain hidup lainnya: tidak ada";
+                viewer.sendActionBar(Component.empty());
             } else {
-                message = String.join(" | ", coordinates);
+                viewer.sendActionBar(
+                        Component.text(String.join(" | ", coordinates))
+                );
             }
-
-            viewer.sendActionBar(Component.text(message));
         }
     }
 
