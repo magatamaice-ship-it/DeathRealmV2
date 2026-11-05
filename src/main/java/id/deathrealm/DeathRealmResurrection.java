@@ -45,21 +45,16 @@ public class DeathRealmResurrection {
             return false;
         }
 
-        Location destination = player.getBedSpawnLocation();
+        Location destination = findDestination(player);
 
-        if (destination == null || destination.getWorld() == null) {
-            World mainWorld = Bukkit.getWorld("world");
+        if (destination == null) {
+            plugin.getLogger().severe(
+                    "Lokasi kebangkitan tidak tersedia untuk "
+                    + player.getName()
+            );
 
-            if (mainWorld == null) {
-                plugin.getLogger().severe(
-                        "Dunia utama bernama world tidak ditemukan!"
-                );
-
-                resurrecting.remove(uuid);
-                return false;
-            }
-
-            destination = mainWorld.getSpawnLocation();
+            resurrecting.remove(uuid);
+            return false;
         }
 
         Location finalDestination = destination.clone();
@@ -75,12 +70,17 @@ public class DeathRealmResurrection {
                 return;
             }
 
+            if (finalDestination.getWorld() == null) {
+                resurrecting.remove(uuid);
+                return;
+            }
+
             boolean teleported = player.teleport(finalDestination);
 
             if (!teleported) {
                 plugin.getLogger().severe(
                         "Gagal memindahkan " + player.getName()
-                        + " ke lokasi kebangkitan. Timer tetap aktif."
+                        + ". Timer tetap aktif."
                 );
 
                 resurrecting.remove(uuid);
@@ -110,5 +110,33 @@ public class DeathRealmResurrection {
         });
 
         return true;
+    }
+
+    private Location findDestination(Player player) {
+        Location bed = player.getBedSpawnLocation();
+
+        if (isValidDestination(bed)) {
+            return bed;
+        }
+
+        World mainWorld = Bukkit.getWorld("world");
+
+        if (mainWorld != null) {
+            Location spawn = mainWorld.getSpawnLocation();
+
+            if (isValidDestination(spawn)) {
+                return spawn;
+            }
+        }
+
+        return null;
+    }
+
+    private boolean isValidDestination(Location location) {
+        return location != null
+                && location.getWorld() != null
+                && Double.isFinite(location.getX())
+                && Double.isFinite(location.getY())
+                && Double.isFinite(location.getZ());
     }
 }
