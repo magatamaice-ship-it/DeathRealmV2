@@ -37,14 +37,20 @@ public final class DeathRealm extends JavaPlugin {
             return;
         }
 
-        new DeathRealmIsland(this, deathWorld).generate();
+        new DeathRealmIsland(this, deathWorld).generate(() -> {
+            new DeathRealmDeadForest(deathWorld).generate();
+
+            getLogger().info(
+                    "Pulau dan hutan mati DeathRealm selesai dibuat!"
+            );
+        });
+
         new DeathRealmBoundary(this, deathWorld).applyBoundary();
 
         protection = new DeathRealmProtection(this);
         visibility = new DeathRealmVisibility(this, timerManager);
 
         bossBar = new DeathRealmBossBar(this, timerManager);
-
         cinematic = new DeathRealmCinematic(this);
 
         resurrection = new DeathRealmResurrection(
