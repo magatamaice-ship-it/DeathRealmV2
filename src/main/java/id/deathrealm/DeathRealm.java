@@ -17,6 +17,7 @@ public final class DeathRealm extends JavaPlugin {
     private DeathRealmTimerTask timerTask;
     private DeathRealmCoordinateDisplay coordinateDisplay;
     private DeathRealmCinematic cinematic;
+    private DeathRealmStructureManager structureManager;
 
     @Override
     public void onEnable() {
@@ -37,16 +38,8 @@ public final class DeathRealm extends JavaPlugin {
             return;
         }
 
-        new DeathRealmIsland(this, deathWorld).generate(() -> {
-            new DeathRealmDeadForest(deathWorld).generate();
-            new DeathRealmRuins(deathWorld).generate();
-            new DeathRealmTemple(deathWorld).generate();
-            new DeathRealmCastle(deathWorld).generate();
-
-            getLogger().info(
-                    "Seluruh struktur utama DeathRealm selesai dibuat!"
-            );
-        });
+        structureManager = new DeathRealmStructureManager(this);
+        structureManager.generate(deathWorld);
 
         new DeathRealmBoundary(this, deathWorld).applyBoundary();
 
