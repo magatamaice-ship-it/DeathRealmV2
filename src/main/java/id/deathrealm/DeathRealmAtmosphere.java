@@ -17,6 +17,9 @@ public class DeathRealmAtmosphere {
 
     private BukkitRunnable task;
 
+    private static final Location ALTAR_LOCATION =
+            new Location(null, 0, 94, -45);
+
     public DeathRealmAtmosphere(DeathRealm plugin) {
         this.plugin = plugin;
     }
@@ -37,20 +40,17 @@ public class DeathRealmAtmosphere {
                     World world = player.getWorld();
                     Location center = player.getLocation();
 
+                    // Kabut di sekitar pemain
                     for (int i = 0; i < 4; i++) {
-                        double offsetX = random.nextDouble() * 16 - 8;
-                        double offsetY = random.nextDouble() * 5 - 1;
-                        double offsetZ = random.nextDouble() * 16 - 8;
+                        double x = random.nextDouble() * 16 - 8;
+                        double y = random.nextDouble() * 5 - 1;
+                        double z = random.nextDouble() * 16 - 8;
 
-                        Location fogLocation = center.clone().add(
-                                offsetX,
-                                offsetY,
-                                offsetZ
-                        );
+                        Location fog = center.clone().add(x, y, z);
 
                         world.spawnParticle(
                                 Particle.DUST,
-                                fogLocation,
+                                fog,
                                 2,
                                 0.8,
                                 0.5,
@@ -72,6 +72,36 @@ public class DeathRealmAtmosphere {
                             5,
                             0.01
                     );
+
+                    // Energi altar
+                    Location altar = new Location(
+                            world,
+                            0.5,
+                            94,
+                            -44.5
+                    );
+
+                    if (center.distanceSquared(altar) <= 2500) {
+                        world.spawnParticle(
+                                Particle.PORTAL,
+                                altar,
+                                12,
+                                1.5,
+                                1.0,
+                                1.5,
+                                0.5
+                        );
+
+                        world.spawnParticle(
+                                Particle.SOUL,
+                                altar,
+                                5,
+                                0.7,
+                                0.8,
+                                0.7,
+                                0.02
+                        );
+                    }
                 }
             }
         };
