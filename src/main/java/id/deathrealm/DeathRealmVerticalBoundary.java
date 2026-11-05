@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 
 public class DeathRealmVerticalBoundary implements Listener {
 
@@ -19,10 +20,34 @@ public class DeathRealmVerticalBoundary implements Listener {
     }
 
     @EventHandler
+    public void onTeleport(PlayerTeleportEvent event) {
+        Player player = event.getPlayer();
+
+        if (!plugin.getTimerManager().hasTimer(
+                player.getUniqueId()
+        )) {
+            return;
+        }
+
+        Location destination = event.getTo();
+
+        if (destination == null
+                || destination.getWorld() == null) {
+            return;
+        }
+
+        if (!destination.getWorld().getName()
+                .equalsIgnoreCase("DeathRealm")) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
     public void onMove(PlayerMoveEvent event) {
         Player player = event.getPlayer();
 
-        if (!player.getWorld().getName().equalsIgnoreCase("DeathRealm")) {
+        if (!player.getWorld().getName()
+                .equalsIgnoreCase("DeathRealm")) {
             return;
         }
 
