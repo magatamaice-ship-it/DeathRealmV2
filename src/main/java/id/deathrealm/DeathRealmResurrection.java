@@ -63,7 +63,9 @@ public class DeathRealmResurrection {
 
         Location finalDestination = destination.clone();
 
-        player.sendMessage("§eJiwamu sedang kembali ke dunia kehidupan...");
+        player.sendMessage(
+                "§eJiwamu sedang kembali ke dunia kehidupan..."
+        );
 
         cinematic.play(player, () -> {
             if (!player.isOnline()) {
@@ -84,9 +86,7 @@ public class DeathRealmResurrection {
 
             player.teleport(finalDestination);
 
-            player.sendMessage(
-                    "§aKamu telah dibangkitkan kembali!"
-            );
+            plugin.getMessages().sendResurrectionMessage(player);
 
             resurrecting.remove(uuid);
             visibility.refreshAll();
