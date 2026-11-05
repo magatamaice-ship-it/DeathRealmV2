@@ -43,10 +43,6 @@ public class DeathRealmCoordinateDisplay {
                     viewer.getUniqueId()
             );
 
-            boolean viewerInDeathRealm = viewer.getWorld()
-                    .getName()
-                    .equalsIgnoreCase("DeathRealm");
-
             List<String> coordinates = new ArrayList<>();
 
             for (Player target : Bukkit.getOnlinePlayers()) {
@@ -59,15 +55,7 @@ public class DeathRealmCoordinateDisplay {
                         target.getUniqueId()
                 );
 
-                boolean targetInDeathRealm = target.getWorld()
-                        .getName()
-                        .equalsIgnoreCase("DeathRealm");
-
                 if (viewerDead != targetDead) {
-                    continue;
-                }
-
-                if (viewerInDeathRealm != targetInDeathRealm) {
                     continue;
                 }
 
