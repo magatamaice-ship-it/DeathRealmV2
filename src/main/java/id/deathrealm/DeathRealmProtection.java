@@ -7,19 +7,21 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 
 public class DeathRealmProtection implements Listener {
 
-    private final DeathRealm plugin;
-
     public DeathRealmProtection(DeathRealm plugin) {
-        this.plugin = plugin;
     }
 
     private boolean isInDeathRealm(Player player) {
-        return player.getWorld().getName().equalsIgnoreCase("DeathRealm");
+        return player.getWorld().getName()
+                .equalsIgnoreCase("DeathRealm");
     }
 
     public void preparePlayer(Player player) {
@@ -61,6 +63,36 @@ public class DeathRealmProtection implements Listener {
 
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
+        if (isInDeathRealm(event.getPlayer())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onInventoryOpen(InventoryOpenEvent event) {
+        if (event.getPlayer() instanceof Player player
+                && isInDeathRealm(player)) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onDrop(PlayerDropItemEvent event) {
+        if (isInDeathRealm(event.getPlayer())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onPickup(EntityPickupItemEvent event) {
+        if (event.getEntity() instanceof Player player
+                && isInDeathRealm(player)) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onInteract(PlayerInteractEvent event) {
         if (isInDeathRealm(event.getPlayer())) {
             event.setCancelled(true);
         }
