@@ -60,6 +60,11 @@ public final class DeathRealm extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(visibility, this);
 
         Bukkit.getPluginManager().registerEvents(
+                new DeathRealmVerticalBoundary(this),
+                this
+        );
+
+        Bukkit.getPluginManager().registerEvents(
                 new DeathRealmDeathListener(
                         this,
                         timerManager,
