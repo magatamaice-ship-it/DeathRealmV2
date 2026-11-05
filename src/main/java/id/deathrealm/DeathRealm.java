@@ -41,6 +41,7 @@ public final class DeathRealm extends JavaPlugin {
             new DeathRealmDeadForest(deathWorld).generate();
             new DeathRealmRuins(deathWorld).generate();
             new DeathRealmTemple(deathWorld).generate();
+            new DeathRealmCastle(deathWorld).generate();
 
             getLogger().info(
                     "Seluruh struktur utama DeathRealm selesai dibuat!"
