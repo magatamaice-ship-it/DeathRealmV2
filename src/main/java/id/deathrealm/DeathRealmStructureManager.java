@@ -1,3 +1,4 @@
+
 package id.deathrealm;
 
 import org.bukkit.World;
@@ -36,16 +37,10 @@ public class DeathRealmStructureManager {
         }
 
         new DeathRealmIsland(plugin, world).generate(() -> {
-            new DeathRealmDeadForest(world).generate();
-            new DeathRealmRuins(world).generate();
-            new DeathRealmTemple(world).generate();
-            new DeathRealmCastle(world).generate();
-            new DeathRealmDeadCity(world).generate();
-
             saveGenerated();
 
             plugin.getLogger().info(
-                    "Seluruh struktur DeathRealm berhasil dibuat dan disimpan!"
+                    "Pulau DeathRealm berhasil dibuat tanpa bangunan!"
             );
         });
     }
@@ -63,7 +58,7 @@ public class DeathRealmStructureManager {
             config.save(file);
         } catch (IOException exception) {
             plugin.getLogger().severe(
-                    "Gagal menyimpan status struktur DeathRealm: "
+                    "Gagal menyimpan status pulau DeathRealm: "
                     + exception.getMessage()
             );
         }
