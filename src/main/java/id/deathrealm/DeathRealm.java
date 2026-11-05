@@ -16,6 +16,7 @@ public final class DeathRealm extends JavaPlugin {
     private DeathRealmResurrection resurrection;
     private DeathRealmTimerTask timerTask;
     private DeathRealmCoordinateDisplay coordinateDisplay;
+    private DeathRealmCinematic cinematic;
 
     @Override
     public void onEnable() {
@@ -43,6 +44,8 @@ public final class DeathRealm extends JavaPlugin {
         visibility = new DeathRealmVisibility(this, timerManager);
 
         bossBar = new DeathRealmBossBar(this, timerManager);
+
+        cinematic = new DeathRealmCinematic(this);
 
         resurrection = new DeathRealmResurrection(
                 this,
@@ -77,7 +80,8 @@ public final class DeathRealm extends JavaPlugin {
                         worldManager,
                         protection,
                         bossBar,
-                        visibility
+                        visibility,
+                        cinematic
                 ),
                 this
         );
