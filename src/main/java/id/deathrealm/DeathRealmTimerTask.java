@@ -54,9 +54,19 @@ public class DeathRealmTimerTask {
                 continue;
             }
 
-            if (processed.add(uuid)) {
-                resurrection.resurrect(player);
+            if (processed.contains(uuid)) {
+                continue;
             }
+
+            if (!Bukkit.getWorlds().contains(
+                    Bukkit.getWorld("world")
+            )) {
+                continue;
+            }
+
+            processed.add(uuid);
+
+            resurrection.resurrect(player);
         }
     }
 
