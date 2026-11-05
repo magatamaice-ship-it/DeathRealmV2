@@ -19,6 +19,7 @@ public class DeathRealmWorld {
 
         if (existing != null) {
             world = existing;
+            world.setSpawnLocation(0, 91, 0);
             return;
         }
 
@@ -32,14 +33,18 @@ public class DeathRealmWorld {
         world = Bukkit.createWorld(creator);
 
         if (world == null) {
-            plugin.getLogger().severe("Gagal membuat dunia DeathRealm!");
+            plugin.getLogger().severe(
+                    "Gagal membuat dunia DeathRealm!"
+            );
             return;
         }
 
         world.setAutoSave(true);
-        world.setSpawnLocation(0, 100, 0);
+        world.setSpawnLocation(0, 91, 0);
 
-        plugin.getLogger().info("Dunia DeathRealm berhasil dibuat!");
+        plugin.getLogger().info(
+                "Dunia DeathRealm berhasil dibuat!"
+        );
     }
 
     public World getWorld() {
