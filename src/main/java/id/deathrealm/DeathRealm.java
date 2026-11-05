@@ -77,49 +77,33 @@ public final class DeathRealm extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(visibility, this);
 
         Bukkit.getPluginManager().registerEvents(
-                new DeathRealmVerticalBoundary(this),
-                this
+                new DeathRealmVerticalBoundary(this), this
         );
 
         Bukkit.getPluginManager().registerEvents(
-                new DeathRealmHorizontalBoundary(this),
-                this
+                new DeathRealmHorizontalBoundary(this), this
         );
 
         Bukkit.getPluginManager().registerEvents(
-                new DeathRealmPortalProtection(this),
-                this
+                new DeathRealmPortalProtection(this), this
         );
 
         Bukkit.getPluginManager().registerEvents(
-                new DeathRealmCommandProtection(this),
-                this
+                new DeathRealmCommandProtection(this), this
         );
 
         Bukkit.getPluginManager().registerEvents(
                 new DeathRealmDeathListener(
-                        this,
-                        timerManager,
-                        worldManager,
-                        protection,
-                        bossBar,
-                        visibility,
-                        cinematic
-                ),
-                this
+                        this, timerManager, worldManager,
+                        protection, bossBar, visibility, cinematic
+                ), this
         );
 
         Bukkit.getPluginManager().registerEvents(
                 new DeathRealmJoinListener(
-                        this,
-                        timerManager,
-                        worldManager,
-                        protection,
-                        bossBar,
-                        visibility,
-                        resurrection
-                ),
-                this
+                        this, timerManager, worldManager,
+                        protection, bossBar, visibility, resurrection
+                ), this
         );
 
         bossBar.start();
@@ -141,29 +125,12 @@ public final class DeathRealm extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (timerTask != null) {
-            timerTask.stop();
-        }
-
-        if (bossBar != null) {
-            bossBar.stop();
-        }
-
-        if (coordinateDisplay != null) {
-            coordinateDisplay.stop();
-        }
-
-        if (atmosphere != null) {
-            atmosphere.stop();
-        }
-
-        if (warningTask != null) {
-            warningTask.stop();
-        }
-
-        if (timerManager != null) {
-            timerManager.saveTimers();
-        }
+        if (timerTask != null) timerTask.stop();
+        if (bossBar != null) bossBar.stop();
+        if (coordinateDisplay != null) coordinateDisplay.stop();
+        if (atmosphere != null) atmosphere.stop();
+        if (warningTask != null) warningTask.stop();
+        if (timerManager != null) timerManager.saveTimers();
 
         instance = null;
 
@@ -180,5 +147,9 @@ public final class DeathRealm extends JavaPlugin {
 
     public DeathRealmMessages getMessages() {
         return messages;
+    }
+
+    public DeathRealmWarningTask getWarningTask() {
+        return warningTask;
     }
 }
