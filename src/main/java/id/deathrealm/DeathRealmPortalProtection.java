@@ -2,6 +2,7 @@ package id.deathrealm;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerPortalEvent;
 
@@ -13,18 +14,16 @@ public class DeathRealmPortalProtection implements Listener {
         this.plugin = plugin;
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPortal(PlayerPortalEvent event) {
         Player player = event.getPlayer();
 
-        if (plugin.getTimerManager().hasTimer(
+        if (!plugin.getTimerManager().hasTimer(
                 player.getUniqueId()
         )) {
-            event.setCancelled(true);
-
-            player.sendMessage(
-                    "§cKamu tidak bisa menggunakan portal selama berada dalam masa kematian!"
-            );
+            return;
         }
+
+        event.setCancelled(true);
     }
 }
