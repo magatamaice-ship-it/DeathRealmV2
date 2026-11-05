@@ -88,6 +88,11 @@ public final class DeathRealm extends JavaPlugin {
         );
 
         Bukkit.getPluginManager().registerEvents(
+                new DeathRealmCommandProtection(this),
+                this
+        );
+
+        Bukkit.getPluginManager().registerEvents(
                 new DeathRealmDeathListener(
                         this,
                         timerManager,
@@ -163,4 +168,4 @@ public final class DeathRealm extends JavaPlugin {
     public DeathTimerManager getTimerManager() {
         return timerManager;
     }
-}
+    }
