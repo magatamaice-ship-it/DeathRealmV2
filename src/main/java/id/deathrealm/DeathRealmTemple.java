@@ -1,11 +1,17 @@
 package id.deathrealm;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 
 public class DeathRealmTemple {
 
     private final World world;
+
+    private static final int CENTER_X = 0;
+    private static final int CENTER_Y = 91;
+    private static final int CENTER_Z = -45;
 
     public DeathRealmTemple(World world) {
         this.world = world;
@@ -16,62 +22,149 @@ public class DeathRealmTemple {
             return;
         }
 
-        int x = 0;
-        int y = 91;
-        int z = -45;
-
-        buildFloor(x, y, z);
-        buildPillars(x, y, z);
-        buildAltar(x, y, z);
+        buildFloor();
+        buildPillars();
+        buildAltar();
+        buildMysteriousLights();
     }
 
-    private void buildFloor(int x, int y, int z) {
-        for (int dx = -7; dx <= 7; dx++) {
-            for (int dz = -7; dz <= 7; dz++) {
-                if (Math.abs(dx) + Math.abs(dz) <= 10) {
-                    world.getBlockAt(x + dx, y, z + dz)
-                            .setType(Material.POLISHED_DEEPSLATE, false);
-                }
+    private void buildFloor() {
+        for (int x = -7; x <= 7; x++) {
+            for (int z = -7; z <= 7; z++) {
+                setBlock(
+                        CENTER_X + x,
+                        CENTER_Y,
+                        CENTER_Z + z,
+                        Material.POLISHED_DEEPSLATE
+                );
             }
         }
     }
 
-    private void buildPillars(int x, int y, int z) {
+    private void buildPillars() {
         int[][] positions = {
-                {-6, -6}, {-6, 6}, {6, -6}, {6, 6}
+                {-6, -6},
+                {6, -6},
+                {-6, 6},
+                {6, 6}
         };
 
         for (int[] position : positions) {
-            for (int height = 1; height <= 7; height++) {
-                world.getBlockAt(
-                        x + position[0],
-                        y + height,
-                        z + position[1]
-                ).setType(Material.DEEPSLATE_BRICKS, false);
+            for (int y = 1; y <= 7; y++) {
+                setBlock(
+                        CENTER_X + position[0],
+                        CENTER_Y + y,
+                        CENTER_Z + position[1],
+                        Material.DEEPSLATE_BRICKS
+                );
             }
+
+            setBlock(
+                    CENTER_X + position[0],
+                    CENTER_Y + 8,
+                    CENTER_Z + position[1],
+                    Material.SOUL_LANTERN
+            );
         }
     }
 
-    private void buildAltar(int x, int y, int z) {
-        world.getBlockAt(x, y + 1, z)
-                .setType(Material.CHISELED_DEEPSLATE, false);
+    private void buildAltar() {
+        setBlock(
+                CENTER_X,
+                CENTER_Y + 1,
+                CENTER_Z,
+                Material.CHISELED_DEEPSLATE
+        );
 
-        world.getBlockAt(x, y + 2, z)
-                .setType(Material.RESPAWN_ANCHOR, false);
+        setBlock(
+                CENTER_X,
+                CENTER_Y + 2,
+                CENTER_Z,
+                Material.RESPAWN_ANCHOR
+        );
 
-        world.getBlockAt(x, y + 3, z)
-                .setType(Material.SOUL_LANTERN, false);
+        setBlock(
+                CENTER_X,
+                CENTER_Y + 3,
+                CENTER_Z,
+                Material.SOUL_LANTERN
+        );
 
-        world.getBlockAt(x + 1, y + 1, z)
-                .setType(Material.SOUL_TORCH, false);
+        int[][] positions = {
+                {2, 0},
+                {-2, 0},
+                {0, 2},
+                {0, -2}
+        };
 
-        world.getBlockAt(x - 1, y + 1, z)
-                .setType(Material.SOUL_TORCH, false);
+        for (int[] position : positions) {
+            setBlock(
+                    CENTER_X + position[0],
+                    CENTER_Y + 1,
+                    CENTER_Z + position[1],
+                    Material.SOUL_TORCH
+            );
+        }
+    }
 
-        world.getBlockAt(x, y + 1, z + 1)
-                .setType(Material.SOUL_TORCH, false);
+    private void buildMysteriousLights() {
+        int[][] positions = {
+                {3, 3},
+                {-3, 3},
+                {3, -3},
+                {-3, -3}
+        };
 
-        world.getBlockAt(x, y + 1, z - 1)
-                .setType(Material.SOUL_TORCH, false);
+        for (int[] position : positions) {
+            int x = CENTER_X + position[0];
+            int z = CENTER_Z + position[1];
+
+            setBlock(
+                    x,
+                    CENTER_Y + 1,
+                    z,
+                    Material.CRYING_OBSIDIAN
+            );
+
+            setBlock(
+                    x,
+                    CENTER_Y + 2,
+                    z,
+                    Material.SOUL_LANTERN
+            );
+
+            setBlock(
+                    x,
+                    CENTER_Y + 3,
+                    z,
+                    Material.AIR
+            );
+        }
+
+        for (int y = 1; y <= 3; y++) {
+            setBlock(
+                    CENTER_X,
+                    CENTER_Y + y,
+                    CENTER_Z + 4,
+                    Material.PURPLE_STAINED_GLASS
+            );
+
+            setBlock(
+                    CENTER_X,
+                    CENTER_Y + y,
+                    CENTER_Z - 4,
+                    Material.PURPLE_STAINED_GLASS
+            );
+        }
+    }
+
+    private void setBlock(
+            int x,
+            int y,
+            int z,
+            Material material
+    ) {
+        Block block = world.getBlockAt(x, y, z);
+        block.setType(material, false);
     }
 }
