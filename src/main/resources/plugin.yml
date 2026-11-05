@@ -1,10 +1,12 @@
-
 name: DeathRealmV2
 version: 2.0.0
 main: id.deathrealm.DeathRealm
 api-version: '1.21'
 author: DeathRealm
 description: Advanced death dimension and resurrection system
+
+softdepend:
+  - ProtocolLib
 
 commands:
   lahirkankembali:
@@ -16,4 +18,3 @@ permissions:
   deathrealm.admin:
     description: Mengizinkan penggunaan perintah kelahiran kembali
     default: op
-    
