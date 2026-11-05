@@ -17,6 +17,11 @@ public class DeathRealmResurrectionCinematic {
     }
 
     public void play(Player player, Runnable onComplete) {
+        boolean previousInvulnerable = player.isInvulnerable();
+        float previousWalkSpeed = player.getWalkSpeed();
+        float previousFlySpeed = player.getFlySpeed();
+        boolean previousAllowFlight = player.getAllowFlight();
+        boolean previousFlying = player.isFlying();
 
         Location location = player.getLocation().clone();
 
@@ -36,7 +41,6 @@ public class DeathRealmResurrectionCinematic {
 
             @Override
             public void run() {
-
                 if (!player.isOnline()) {
                     cancel();
                     return;
@@ -59,6 +63,15 @@ public class DeathRealmResurrectionCinematic {
                     camera.play(player, () -> {
                         if (!player.isOnline()) {
                             return;
+                        }
+
+                        player.setInvulnerable(previousInvulnerable);
+                        player.setWalkSpeed(previousWalkSpeed);
+                        player.setFlySpeed(previousFlySpeed);
+                        player.setAllowFlight(previousAllowFlight);
+
+                        if (previousAllowFlight) {
+                            player.setFlying(previousFlying);
                         }
 
                         player.getWorld().playSound(
