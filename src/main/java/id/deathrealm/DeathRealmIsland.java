@@ -18,6 +18,7 @@ public class DeathRealmIsland {
     private static final int CENTER_Z = 0;
     private static final int SURFACE_Y = 90;
     private static final int RADIUS = 80;
+    private static final int DEPTH = 24;
 
     public DeathRealmIsland(DeathRealm plugin, World world) {
         this.plugin = plugin;
@@ -68,7 +69,7 @@ public class DeathRealmIsland {
 
                 if (index >= blocks.size()) {
                     plugin.getLogger().info(
-                            "Daratan utama DeathRealm selesai dibuat!"
+                            "Pulau melayang DeathRealm selesai dibuat!"
                     );
 
                     cancel();
@@ -82,33 +83,41 @@ public class DeathRealmIsland {
     }
 
     private void prepareBlocks() {
-        for (int x = -RADIUS; x <= RADIUS; x++) {
-            for (int z = -RADIUS; z <= RADIUS; z++) {
+        for (int y = 0; y <= DEPTH; y++) {
 
-                double distance = Math.sqrt(x * x + z * z);
+            double progress = (double) y / DEPTH;
 
-                if (distance > RADIUS) {
-                    continue;
-                }
+            int currentRadius = Math.max(
+                    2,
+                    (int) (RADIUS * (1.0 - progress))
+            );
 
-                blocks.add(new BlockData(
-                        x, SURFACE_Y, z, Material.STONE
-                ));
+            for (int x = -currentRadius; x <= currentRadius; x++) {
+                for (int z = -currentRadius; z <= currentRadius; z++) {
 
-                if (distance < RADIUS - 5) {
+                    double distance = Math.sqrt(x * x + z * z);
+
+                    if (distance > currentRadius) {
+                        continue;
+                    }
+
+                    Material material;
+
+                    if (y == 0) {
+                        material = Material.STONE;
+                    } else if (y < 8) {
+                        material = Material.DEEPSLATE;
+                    } else if (y < 17) {
+                        material = Material.COBBLED_DEEPSLATE;
+                    } else {
+                        material = Material.DEEPSLATE_BRICKS;
+                    }
+
                     blocks.add(new BlockData(
-                            x, SURFACE_Y - 1, z,
-                            Material.DEEPSLATE
-                    ));
-
-                    blocks.add(new BlockData(
-                            x, SURFACE_Y - 2, z,
-                            Material.DEEPSLATE
-                    ));
-
-                    blocks.add(new BlockData(
-                            x, SURFACE_Y - 3, z,
-                            Material.COBBLED_DEEPSLATE
+                            x,
+                            SURFACE_Y - y,
+                            z,
+                            material
                     ));
                 }
             }
