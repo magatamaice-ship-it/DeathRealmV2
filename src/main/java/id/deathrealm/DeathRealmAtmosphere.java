@@ -1,10 +1,12 @@
 package id.deathrealm;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
+import org.bukkit.Location;
 import org.bukkit.Particle;
-import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.Random;
 
@@ -13,93 +15,74 @@ public class DeathRealmAtmosphere {
     private final DeathRealm plugin;
     private final Random random = new Random();
 
-    private BukkitTask particleTask;
-    private BukkitTask soundTask;
+    private BukkitRunnable task;
 
     public DeathRealmAtmosphere(DeathRealm plugin) {
         this.plugin = plugin;
     }
 
     public void start() {
-        if (particleTask != null) {
-            return;
+        if (task != null) {
+            task.cancel();
         }
 
-        particleTask = Bukkit.getScheduler().runTaskTimer(
-                plugin,
-                this::spawnAtmosphere,
-                40L,
-                40L
-        );
+        task = new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    if (!player.getWorld().getName().equals("DeathRealm")) {
+                        continue;
+                    }
 
-        soundTask = Bukkit.getScheduler().runTaskTimer(
-                plugin,
-                this::playAmbientSound,
-                200L,
-                400L
-        );
-    }
+                    World world = player.getWorld();
+                    Location center = player.getLocation();
 
-    private void spawnAtmosphere() {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (!player.getWorld().getName()
-                    .equalsIgnoreCase("DeathRealm")) {
-                continue;
+                    for (int i = 0; i < 4; i++) {
+                        double offsetX = random.nextDouble() * 16 - 8;
+                        double offsetY = random.nextDouble() * 5 - 1;
+                        double offsetZ = random.nextDouble() * 16 - 8;
+
+                        Location fogLocation = center.clone().add(
+                                offsetX,
+                                offsetY,
+                                offsetZ
+                        );
+
+                        world.spawnParticle(
+                                Particle.DUST,
+                                fogLocation,
+                                2,
+                                0.8,
+                                0.5,
+                                0.8,
+                                0,
+                                new Particle.DustOptions(
+                                        Color.fromRGB(100, 90, 130),
+                                        2.0F
+                                )
+                        );
+                    }
+
+                    world.spawnParticle(
+                            Particle.ASH,
+                            center.clone().add(0, 2, 0),
+                            3,
+                            5,
+                            1,
+                            5,
+                            0.01
+                    );
+                }
             }
+        };
 
-            player.getWorld().spawnParticle(
-                    Particle.ASH,
-                    player.getLocation().clone().add(
-                            random.nextDouble() * 12 - 6,
-                            random.nextDouble() * 4,
-                            random.nextDouble() * 12 - 6
-                    ),
-                    4,
-                    1.5,
-                    1.0,
-                    1.5,
-                    0.01
-            );
-
-            player.getWorld().spawnParticle(
-                    Particle.SOUL,
-                    player.getLocation().clone().add(0, 1, 0),
-                    2,
-                    0.5,
-                    0.8,
-                    0.5,
-                    0.01
-            );
-        }
-    }
-
-    private void playAmbientSound() {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (!player.getWorld().getName()
-                    .equalsIgnoreCase("DeathRealm")) {
-                continue;
-            }
-
-            if (random.nextInt(100) < 40) {
-                player.playSound(
-                        player.getLocation(),
-                        Sound.AMBIENT_SOUL_SAND_VALLEY_MOOD,
-                        0.5f,
-                        0.7f
-                );
-            }
-        }
+        task.runTaskTimer(plugin, 10L, 20L);
     }
 
     public void stop() {
-        if (particleTask != null) {
-            particleTask.cancel();
-            particleTask = null;
-        }
-
-        if (soundTask != null) {
-            soundTask.cancel();
-            soundTask = null;
+        if (task != null) {
+            task.cancel();
+            task = null;
         }
     }
 }
