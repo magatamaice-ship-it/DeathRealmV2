@@ -20,6 +20,7 @@ public final class DeathRealm extends JavaPlugin {
     private DeathRealmStructureManager structureManager;
     private DeathRealmAtmosphere atmosphere;
     private DeathRealmMessages messages;
+    private DeathRealmWarningTask warningTask;
 
     @Override
     public void onEnable() {
@@ -52,6 +53,7 @@ public final class DeathRealm extends JavaPlugin {
         cinematic = new DeathRealmCinematic(this);
         atmosphere = new DeathRealmAtmosphere(this);
         messages = new DeathRealmMessages(this);
+        warningTask = new DeathRealmWarningTask(this, timerManager);
 
         resurrection = new DeathRealmResurrection(
                 this,
@@ -124,6 +126,7 @@ public final class DeathRealm extends JavaPlugin {
         timerTask.start();
         coordinateDisplay.start();
         atmosphere.start();
+        warningTask.start();
 
         if (getCommand("lahirkankembali") != null) {
             getCommand("lahirkankembali").setExecutor(
@@ -152,6 +155,10 @@ public final class DeathRealm extends JavaPlugin {
 
         if (atmosphere != null) {
             atmosphere.stop();
+        }
+
+        if (warningTask != null) {
+            warningTask.stop();
         }
 
         if (timerManager != null) {
