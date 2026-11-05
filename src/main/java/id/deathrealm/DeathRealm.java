@@ -39,9 +39,10 @@ public final class DeathRealm extends JavaPlugin {
 
         new DeathRealmIsland(this, deathWorld).generate(() -> {
             new DeathRealmDeadForest(deathWorld).generate();
+            new DeathRealmRuins(deathWorld).generate();
 
             getLogger().info(
-                    "Pulau dan hutan mati DeathRealm selesai dibuat!"
+                    "Pulau, hutan mati, dan reruntuhan DeathRealm selesai dibuat!"
             );
         });
 
