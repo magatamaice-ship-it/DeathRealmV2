@@ -22,6 +22,7 @@ public class DeathRealmDeathListener implements Listener {
     private final DeathRealmBossBar bossBar;
     private final DeathRealmVisibility visibility;
     private final DeathRealmCinematic cinematic;
+    private final DeathRealmEntryEffect entryEffect;
 
     private final Set<UUID> pendingPlayers = new HashSet<>();
 
@@ -41,6 +42,7 @@ public class DeathRealmDeathListener implements Listener {
         this.bossBar = bossBar;
         this.visibility = visibility;
         this.cinematic = cinematic;
+        this.entryEffect = new DeathRealmEntryEffect(plugin);
     }
 
     @EventHandler
@@ -89,6 +91,7 @@ public class DeathRealmDeathListener implements Listener {
 
             protection.preparePlayer(player);
             bossBar.show(player);
+            entryEffect.play(player);
             visibility.refreshAll();
         });
     }
