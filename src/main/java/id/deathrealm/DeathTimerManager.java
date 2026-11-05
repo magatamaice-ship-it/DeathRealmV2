@@ -24,6 +24,10 @@ public class DeathTimerManager {
     }
 
     public void startTimer(UUID playerId) {
+        if (timers.containsKey(playerId)) {
+            return;
+        }
+
         long endTime = System.currentTimeMillis() + DEATH_TIME;
 
         timers.put(playerId, endTime);
@@ -56,8 +60,12 @@ public class DeathTimerManager {
     }
 
     public void saveTimers() {
-        if (!plugin.getDataFolder().exists()) {
-            plugin.getDataFolder().mkdirs();
+        if (!plugin.getDataFolder().exists()
+                && !plugin.getDataFolder().mkdirs()) {
+            plugin.getLogger().severe(
+                    "Gagal membuat folder data DeathRealm!"
+            );
+            return;
         }
 
         YamlConfiguration config = new YamlConfiguration();
@@ -80,8 +88,12 @@ public class DeathTimerManager {
     }
 
     private void loadTimers() {
-        if (!plugin.getDataFolder().exists()) {
-            plugin.getDataFolder().mkdirs();
+        if (!plugin.getDataFolder().exists()
+                && !plugin.getDataFolder().mkdirs()) {
+            plugin.getLogger().severe(
+                    "Gagal membuat folder data DeathRealm!"
+            );
+            return;
         }
 
         if (!file.exists()) {
@@ -96,7 +108,9 @@ public class DeathTimerManager {
                 UUID playerId = UUID.fromString(key);
                 long endTime = config.getLong(key);
 
-                timers.put(playerId, endTime);
+                if (endTime > 0L) {
+                    timers.put(playerId, endTime);
+                }
             } catch (IllegalArgumentException exception) {
                 plugin.getLogger().warning(
                         "UUID tidak valid di timers.yml: " + key
