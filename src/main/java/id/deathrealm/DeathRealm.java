@@ -15,6 +15,7 @@ public final class DeathRealm extends JavaPlugin {
     private DeathRealmVisibility visibility;
     private DeathRealmResurrection resurrection;
     private DeathRealmTimerTask timerTask;
+    private DeathRealmCoordinateDisplay coordinateDisplay;
 
     @Override
     public void onEnable() {
@@ -56,6 +57,11 @@ public final class DeathRealm extends JavaPlugin {
                 resurrection
         );
 
+        coordinateDisplay = new DeathRealmCoordinateDisplay(
+                this,
+                timerManager
+        );
+
         Bukkit.getPluginManager().registerEvents(protection, this);
         Bukkit.getPluginManager().registerEvents(visibility, this);
 
@@ -91,6 +97,7 @@ public final class DeathRealm extends JavaPlugin {
 
         bossBar.start();
         timerTask.start();
+        coordinateDisplay.start();
 
         if (getCommand("lahirkankembali") != null) {
             getCommand("lahirkankembali").setExecutor(
@@ -111,6 +118,10 @@ public final class DeathRealm extends JavaPlugin {
 
         if (bossBar != null) {
             bossBar.stop();
+        }
+
+        if (coordinateDisplay != null) {
+            coordinateDisplay.stop();
         }
 
         instance = null;
