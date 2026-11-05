@@ -40,6 +40,7 @@ public class DeathRealmStructureManager {
             new DeathRealmRuins(world).generate();
             new DeathRealmTemple(world).generate();
             new DeathRealmCastle(world).generate();
+            new DeathRealmDeadCity(world).generate();
 
             saveGenerated();
 
