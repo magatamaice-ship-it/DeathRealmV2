@@ -35,12 +35,10 @@ public class DeathRealmResurrection {
         this.cinematic = new DeathRealmResurrectionCinematic(plugin);
     }
 
-    // Kompatibilitas dengan pemanggilan sistem lama.
     public boolean resurrect(Player player) {
         return resurrect(player, null);
     }
 
-    // Callback hanya menerima true setelah teleport berhasil.
     public boolean resurrect(
             Player player,
             Consumer<Boolean> onComplete
@@ -77,76 +75,72 @@ public class DeathRealmResurrection {
                 "§eJiwamu sedang kembali ke dunia kehidupan..."
         );
 
-        cinematic.play(player, () -> {
+        try {
+            cinematic.play(player, () -> {
+                if (!player.isOnline()) {
+                    resurrecting.remove(uuid);
+                    notifyResult(onComplete, false);
+                    return;
+                }
 
-            if (!player.isOnline()) {
+                if (!timerManager.hasTimer(uuid)) {
+                    resurrecting.remove(uuid);
+                    notifyResult(onComplete, false);
+                    return;
+                }
+
+                if (finalDestination.getWorld() == null) {
+                    resurrecting.remove(uuid);
+                    notifyResult(onComplete, false);
+                    return;
+                }
+
+                boolean teleported = player.teleport(finalDestination);
+
+                if (!teleported) {
+                    resurrecting.remove(uuid);
+
+                    player.sendMessage(
+                            "§cKebangkitan gagal. Jiwamu masih berada di DeathRealm."
+                    );
+
+                    notifyResult(onComplete, false);
+                    return;
+                }
+
+                plugin.getSoulFragmentDisplay().removeFragments(uuid);
+                plugin.getSoulFragmentManager().resetTrial(uuid);
+
+                timerManager.removeTimer(uuid);
+
+                bossBar.hide(player);
+
+                player.setFlying(false);
+                player.setAllowFlight(false);
+                player.setGameMode(GameMode.SURVIVAL);
+                player.setHealth(player.getMaxHealth());
+                player.setFoodLevel(20);
+                player.setSaturation(20);
+                player.setFallDistance(0);
+
+                plugin.getMessages().sendResurrectionMessage(player);
+
                 resurrecting.remove(uuid);
-                notifyResult(onComplete, false);
-                return;
-            }
+                visibility.refreshAll();
 
-            if (!timerManager.hasTimer(uuid)) {
-                resurrecting.remove(uuid);
-                notifyResult(onComplete, false);
-                return;
-            }
-
-            if (finalDestination.getWorld() == null) {
-                plugin.getLogger().severe(
-                        "Dunia tujuan kebangkitan tidak tersedia untuk "
-                        + player.getName()
-                );
-
-                resurrecting.remove(uuid);
-                notifyResult(onComplete, false);
-                return;
-            }
-
-            boolean teleported = player.teleport(finalDestination);
-
-            if (!teleported) {
-                plugin.getLogger().severe(
-                        "Gagal memindahkan " + player.getName()
-                        + ". Timer tetap aktif."
-                );
-
-                resurrecting.remove(uuid);
-
-                player.sendMessage(
-                        "§cKebangkitan gagal. Jiwamu masih berada di DeathRealm."
-                );
-
-                notifyResult(onComplete, false);
-                return;
-            }
-
-            // Bersihkan tampilan dan data fragmen.
-            plugin.getSoulFragmentDisplay().removeFragments(uuid);
-            plugin.getSoulFragmentManager().resetTrial(uuid);
-
-            // Hapus timer kematian.
-            timerManager.removeTimer(uuid);
-
-            // Sembunyikan BossBar.
-            bossBar.hide(player);
-
-            // Pulihkan kondisi pemain.
-            player.setFlying(false);
-            player.setAllowFlight(false);
-            player.setGameMode(GameMode.SURVIVAL);
-            player.setHealth(player.getMaxHealth());
-            player.setFoodLevel(20);
-            player.setSaturation(20);
-            player.setFallDistance(0);
-
-            plugin.getMessages().sendResurrectionMessage(player);
-
+                notifyResult(onComplete, true);
+            });
+        } catch (Exception exception) {
             resurrecting.remove(uuid);
-            visibility.refreshAll();
 
-            // Kebangkitan benar-benar berhasil.
-            notifyResult(onComplete, true);
-        });
+            plugin.getLogger().severe(
+                    "Kesalahan cinematic kebangkitan: "
+                    + exception.getMessage()
+            );
+
+            notifyResult(onComplete, false);
+            return false;
+        }
 
         return true;
     }
@@ -167,17 +161,22 @@ public class DeathRealmResurrection {
             return bed;
         }
 
-        World mainWorld = Bukkit.getWorld("world");
+        World mainWorld = null;
 
-        if (mainWorld != null) {
-            Location spawn = mainWorld.getSpawnLocation();
-
-            if (isValidDestination(spawn)) {
-                return spawn;
+        for (World world : Bukkit.getWorlds()) {
+            if (!world.getName().equalsIgnoreCase("DeathRealm")) {
+                mainWorld = world;
+                break;
             }
         }
 
-        return null;
+        if (mainWorld == null) {
+            return null;
+        }
+
+        Location spawn = mainWorld.getSpawnLocation();
+
+        return isValidDestination(spawn) ? spawn : null;
     }
 
     private boolean isValidDestination(Location location) {
