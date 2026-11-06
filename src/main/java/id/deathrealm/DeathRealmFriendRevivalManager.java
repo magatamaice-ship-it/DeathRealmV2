@@ -33,22 +33,35 @@ public class DeathRealmFriendRevivalManager implements Listener {
 
     private final DeathRealm plugin;
     private final File file;
-    private final List<Requirement> requirements = new ArrayList<>();
-    private final Map<UUID, BukkitTask> activeRituals = new HashMap<>();
-    private final Set<UUID> pendingRevival = new HashSet<>();
+
+    private final List<Requirement> requirements =
+            new ArrayList<>();
+
+    private final Map<UUID, BukkitTask> activeRituals =
+            new HashMap<>();
+
+    private final Set<UUID> pendingRevival =
+            new HashSet<>();
+
+    private final Set<UUID> pendingInProgress =
+            new HashSet<>();
 
     private DeathRealmResurrection resurrection;
 
     public DeathRealmFriendRevivalManager(DeathRealm plugin) {
         this.plugin = plugin;
+
         this.file = new File(
                 plugin.getDataFolder(),
                 "revival-requirements.yml"
         );
+
         load();
     }
 
-    public void setResurrection(DeathRealmResurrection resurrection) {
+    public void setResurrection(
+            DeathRealmResurrection resurrection
+    ) {
         this.resurrection = resurrection;
     }
 
@@ -57,7 +70,8 @@ public class DeathRealmFriendRevivalManager implements Listener {
             return false;
         }
 
-        ItemStack held = player.getInventory().getItemInMainHand();
+        ItemStack held =
+                player.getInventory().getItemInMainHand();
 
         if (held.getType() == Material.AIR) {
             return false;
@@ -72,7 +86,10 @@ public class DeathRealmFriendRevivalManager implements Listener {
             }
         }
 
-        requirements.add(new Requirement(savedItem, amount));
+        requirements.add(
+                new Requirement(savedItem, amount)
+        );
+
         save();
         return true;
     }
@@ -84,6 +101,7 @@ public class DeathRealmFriendRevivalManager implements Listener {
 
         requirements.remove(index - 1);
         save();
+
         return true;
     }
 
@@ -98,8 +116,10 @@ public class DeathRealmFriendRevivalManager implements Listener {
         }
 
         for (Requirement requirement : requirements) {
-            if (countItem(player, requirement.getItem())
-                    < requirement.getAmount()) {
+            if (countItem(
+                    player,
+                    requirement.getItem()
+            ) < requirement.getAmount()) {
                 return false;
             }
         }
@@ -129,7 +149,14 @@ public class DeathRealmFriendRevivalManager implements Listener {
                 && plugin.getTimerManager().hasTimer(targetId);
     }
 
-    public boolean startRitual(Player initiator, UUID targetId) {
+    public boolean isPendingRevival(UUID uuid) {
+        return uuid != null && pendingRevival.contains(uuid);
+    }
+
+    public boolean startRitual(
+            Player initiator,
+            UUID targetId
+    ) {
         if (initiator == null || !initiator.isOnline()
                 || targetId == null
                 || targetId.equals(initiator.getUniqueId())
@@ -140,7 +167,8 @@ public class DeathRealmFriendRevivalManager implements Listener {
             return false;
         }
 
-        Location altar = plugin.getAltarManager().getSummoningAltar();
+        Location altar =
+                plugin.getAltarManager().getSummoningAltar();
 
         if (altar == null || altar.getWorld() == null) {
             initiator.sendMessage(
@@ -170,6 +198,7 @@ public class DeathRealmFriendRevivalManager implements Listener {
                                     "§cRitual dibatalkan. Target sudah tidak berstatus mati."
                             );
                         }
+
                         return;
                     }
 
@@ -180,19 +209,29 @@ public class DeathRealmFriendRevivalManager implements Listener {
 
                     elapsed[0]++;
 
-                    playRitualEffects(altar, elapsed[0]);
+                    playRitualEffects(
+                            altar,
+                            elapsed[0]
+                    );
 
-                    if (elapsed[0] % 30 == 0 && initiator.isOnline()) {
-                        int remaining = RITUAL_SECONDS - elapsed[0];
+                    if (elapsed[0] % 30 == 0
+                            && initiator.isOnline()) {
+
+                        int remaining =
+                                RITUAL_SECONDS - elapsed[0];
 
                         initiator.sendMessage(
                                 "§eRitual kebangkitan: §f"
-                                        + remaining + " detik tersisa."
+                                        + remaining
+                                        + " detik tersisa."
                         );
                     }
 
                     if (elapsed[0] >= RITUAL_SECONDS) {
-                        finishRitual(initiator, targetId);
+                        finishRitual(
+                                initiator,
+                                targetId
+                        );
                     }
                 },
                 0L,
@@ -200,10 +239,14 @@ public class DeathRealmFriendRevivalManager implements Listener {
         );
 
         activeRituals.put(targetId, task);
+
         return true;
     }
 
-    private void finishRitual(Player initiator, UUID targetId) {
+    private void finishRitual(
+            Player initiator,
+            UUID targetId
+    ) {
         BukkitTask task = activeRituals.remove(targetId);
 
         if (task != null) {
@@ -217,19 +260,35 @@ public class DeathRealmFriendRevivalManager implements Listener {
         Player target = Bukkit.getPlayer(targetId);
 
         if (target != null && target.isOnline()) {
-            boolean started = resurrection.resurrect(target);
 
-            if (started) {
-                // Kebangkitan teman berhasil.
-                // Batalkan ritual kebangkitan sendiri milik target.
-                plugin.getSoulFragmentRitual().cancelRitual(targetId);
+            boolean started = resurrection.resurrect(
+                    target,
+                    success -> {
 
-                if (initiator.isOnline()) {
-                    initiator.sendMessage(
-                            "§aRitual selesai! Kebangkitan target dimulai."
-                    );
-                }
-            } else if (initiator.isOnline()) {
+                        if (!success) {
+                            if (initiator.isOnline()) {
+                                initiator.sendMessage(
+                                        "§cKebangkitan target gagal diselesaikan."
+                                );
+                            }
+
+                            return;
+                        }
+
+                        // Batalkan ritual sendiri hanya setelah
+                        // teleport kebangkitan teman berhasil.
+                        plugin.getSoulFragmentRitual()
+                                .cancelRitual(targetId);
+
+                        if (initiator.isOnline()) {
+                            initiator.sendMessage(
+                                    "§aRitual selesai! Target berhasil dibangkitkan."
+                            );
+                        }
+                    }
+            );
+
+            if (!started && initiator.isOnline()) {
                 initiator.sendMessage(
                         "§cKebangkitan target gagal dimulai."
                 );
@@ -251,14 +310,13 @@ public class DeathRealmFriendRevivalManager implements Listener {
     }
 
     private void cleanupOfflineTarget(UUID targetId) {
-        plugin.getSoulFragmentDisplay().removeFragments(targetId);
-        plugin.getSoulFragmentManager().resetTrial(targetId);
+        plugin.getSoulFragmentDisplay()
+                .removeFragments(targetId);
+
+        plugin.getSoulFragmentManager()
+                .resetTrial(targetId);
     }
 
-    /**
-     * Membatalkan ritual teman berdasarkan UUID target.
-     * Dipakai ketika ritual kebangkitan sendiri berhasil lebih dahulu.
-     */
     public void cancelRitualForTarget(UUID targetId) {
         if (targetId == null) {
             return;
@@ -275,9 +333,14 @@ public class DeathRealmFriendRevivalManager implements Listener {
         cancelRitualForTarget(targetId);
     }
 
-    private void playRitualEffects(Location altar, int elapsed) {
+    private void playRitualEffects(
+            Location altar,
+            int elapsed
+    ) {
         int stage = elapsed / 45;
-        Location center = altar.clone().add(0.5, 1.2, 0.5);
+
+        Location center =
+                altar.clone().add(0.5, 1.2, 0.5);
 
         altar.getWorld().spawnParticle(
                 Particle.SOUL,
@@ -335,32 +398,63 @@ public class DeathRealmFriendRevivalManager implements Listener {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
 
-        if (!pendingRevival.contains(uuid)) {
+        if (!pendingRevival.contains(uuid)
+                || !pendingInProgress.add(uuid)) {
             return;
         }
 
         Bukkit.getScheduler().runTask(plugin, () -> {
+
             if (!player.isOnline()
                     || !pendingRevival.contains(uuid)
                     || resurrection == null) {
+
+                pendingInProgress.remove(uuid);
                 return;
             }
 
-            if (resurrection.resurrect(player)) {
-                pendingRevival.remove(uuid);
-                save();
+            boolean started = resurrection.resurrect(
+                    player,
+                    success -> {
 
-                player.sendMessage(
-                        "§aRitual temanmu berhasil. Kebangkitanmu dimulai!"
-                );
+                        pendingInProgress.remove(uuid);
+
+                        if (!success) {
+                            if (player.isOnline()) {
+                                player.sendMessage(
+                                        "§cKebangkitan tertunda belum berhasil. Silakan coba masuk kembali."
+                                );
+                            }
+
+                            return;
+                        }
+
+                        pendingRevival.remove(uuid);
+                        save();
+
+                        if (player.isOnline()) {
+                            player.sendMessage(
+                                    "§aRitual temanmu berhasil. Kamu telah kembali ke dunia kehidupan!"
+                            );
+                        }
+                    }
+            );
+
+            if (!started) {
+                pendingInProgress.remove(uuid);
             }
         });
     }
 
-    private int countItem(Player player, ItemStack template) {
+    private int countItem(
+            Player player,
+            ItemStack template
+    ) {
         int total = 0;
 
-        for (ItemStack item : player.getInventory().getStorageContents()) {
+        for (ItemStack item :
+                player.getInventory().getStorageContents()) {
+
             if (item != null && item.isSimilar(template)) {
                 total += item.getAmount();
             }
@@ -377,17 +471,22 @@ public class DeathRealmFriendRevivalManager implements Listener {
         int remaining = amount;
 
         for (int slot = 0;
-             slot < player.getInventory().getStorageContents().length
+             slot < player.getInventory()
+                     .getStorageContents().length
                      && remaining > 0;
              slot++) {
 
-            ItemStack item = player.getInventory().getItem(slot);
+            ItemStack item =
+                    player.getInventory().getItem(slot);
 
             if (item == null || !item.isSimilar(template)) {
                 continue;
             }
 
-            int taken = Math.min(remaining, item.getAmount());
+            int taken = Math.min(
+                    remaining,
+                    item.getAmount()
+            );
 
             item.setAmount(item.getAmount() - taken);
             remaining -= taken;
@@ -401,22 +500,29 @@ public class DeathRealmFriendRevivalManager implements Listener {
     private void save() {
         if (!plugin.getDataFolder().exists()
                 && !plugin.getDataFolder().mkdirs()) {
+
             plugin.getLogger().severe(
                     "Gagal membuat folder data DeathRealm!"
             );
+
             return;
         }
 
-        YamlConfiguration config = new YamlConfiguration();
+        YamlConfiguration config =
+                new YamlConfiguration();
 
         for (int i = 0; i < requirements.size(); i++) {
             Requirement requirement = requirements.get(i);
 
-            config.set("requirements." + i + ".item",
-                    requirement.getItem());
+            config.set(
+                    "requirements." + i + ".item",
+                    requirement.getItem()
+            );
 
-            config.set("requirements." + i + ".amount",
-                    requirement.getAmount());
+            config.set(
+                    "requirements." + i + ".amount",
+                    requirement.getAmount()
+            );
         }
 
         for (UUID uuid : pendingRevival) {
@@ -446,6 +552,7 @@ public class DeathRealmFriendRevivalManager implements Listener {
 
         if (section != null) {
             for (String key : section.getKeys(false)) {
+
                 ItemStack item = config.getItemStack(
                         "requirements." + key + ".item"
                 );
@@ -454,13 +561,17 @@ public class DeathRealmFriendRevivalManager implements Listener {
                         "requirements." + key + ".amount"
                 );
 
-                if (item == null || item.getType() == Material.AIR
+                if (item == null
+                        || item.getType() == Material.AIR
                         || amount <= 0) {
                     continue;
                 }
 
                 item.setAmount(1);
-                requirements.add(new Requirement(item, amount));
+
+                requirements.add(
+                        new Requirement(item, amount)
+                );
             }
         }
 
@@ -475,17 +586,21 @@ public class DeathRealmFriendRevivalManager implements Listener {
                     if (pending.getBoolean(key)) {
                         pendingRevival.add(uuid);
                     }
+
                 } catch (IllegalArgumentException exception) {
                     plugin.getLogger().warning(
-                            "UUID pending revival tidak valid: " + key
+                            "UUID pending revival tidak valid: "
+                                    + key
                     );
                 }
             }
         }
 
         plugin.getLogger().info(
-                "Berhasil memuat " + requirements.size()
-                        + " persyaratan dan " + pendingRevival.size()
+                "Berhasil memuat "
+                        + requirements.size()
+                        + " persyaratan dan "
+                        + pendingRevival.size()
                         + " kebangkitan tertunda."
         );
     }
