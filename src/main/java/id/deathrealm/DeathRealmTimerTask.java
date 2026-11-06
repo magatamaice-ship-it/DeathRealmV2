@@ -49,11 +49,8 @@ public class DeathRealmTimerTask {
                 continue;
             }
 
-            if (!timerManager.isExpired(uuid)) {
-                continue;
-            }
-
-            if (processed.contains(uuid)) {
+            if (!timerManager.isExpired(uuid)
+                    || processed.contains(uuid)) {
                 continue;
             }
 
@@ -84,12 +81,19 @@ public class DeathRealmTimerTask {
             Bukkit.getScheduler().runTaskLater(
                     plugin,
                     () -> {
-                        if (player.isOnline()
-                                && timerManager.hasTimer(uuid)
-                                && timerManager.isTrialUnlocked(uuid)) {
-
-                            plugin.getSoulFragmentMenu().openMenu(player);
+                        if (!player.isOnline()
+                                || !timerManager.hasTimer(uuid)
+                                || !timerManager.isTrialUnlocked(uuid)) {
+                            return;
                         }
+
+                        if (plugin.getSoulFragmentManager()
+                                .getActiveTrialOwners()
+                                .contains(uuid)) {
+                            return;
+                        }
+
+                        plugin.getSoulFragmentMenu().openMenu(player);
                     },
                     40L
             );
