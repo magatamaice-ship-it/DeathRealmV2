@@ -1,6 +1,7 @@
 
 package id.deathrealm;
 
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -9,11 +10,14 @@ import org.bukkit.entity.Player;
 public class DeathRealmAltarCommand implements CommandExecutor {
 
     private final DeathRealmAltarManager altarManager;
+    private final DeathRealmPortalManager portalManager;
 
     public DeathRealmAltarCommand(
-            DeathRealmAltarManager altarManager
+            DeathRealmAltarManager altarManager,
+            DeathRealmPortalManager portalManager
     ) {
         this.altarManager = altarManager;
+        this.portalManager = portalManager;
     }
 
     @Override
@@ -23,10 +27,12 @@ public class DeathRealmAltarCommand implements CommandExecutor {
             String label,
             String[] args
     ) {
-        if (!(sender instanceof Player player)) {
+        if (!(sender instanceof Player)) {
             sender.sendMessage("Perintah ini hanya bisa digunakan pemain.");
             return true;
         }
+
+        Player player = (Player) sender;
 
         if (!player.hasPermission("deathrealm.admin")) {
             player.sendMessage("§cKamu tidak memiliki izin.");
@@ -34,58 +40,68 @@ public class DeathRealmAltarCommand implements CommandExecutor {
         }
 
         if (args.length != 1) {
-            sendHelp(player);
+            player.sendMessage("§ePengaturan lokasi ALAMKACUNG:");
+            player.sendMessage("§f/alamkacung setpemanggilan");
+            player.sendMessage("§f/alamkacung setkelahiran");
+            player.sendMessage("§f/alamkacung setportalmasuk");
+            player.sendMessage("§f/alamkacung setportalkeluar");
             return true;
         }
 
+        Location location = player.getLocation();
+
         switch (args[0].toLowerCase()) {
+
             case "setpemanggilan":
-                if (!player.getWorld().getName()
-                        .equalsIgnoreCase("DeathRealm")) {
-                    player.sendMessage(
-                            "§cKamu harus berada di ALAMKACUNG."
-                    );
+                if (!isDeathRealm(location)) {
+                    player.sendMessage("§cAltar harus berada di ALAMKACUNG!");
                     return true;
                 }
 
-                altarManager.setSummoningAltar(
-                        player.getLocation()
-                );
-
-                player.sendMessage(
-                        "§aAltar Pemanggilan berhasil disimpan!"
-                );
+                altarManager.setSummoningAltar(location);
+                player.sendMessage("§aLokasi Altar Pemanggilan berhasil disimpan!");
                 break;
 
             case "setkelahiran":
-                if (!player.getWorld().getName()
-                        .equalsIgnoreCase("DeathRealm")) {
-                    player.sendMessage(
-                            "§cKamu harus berada di ALAMKACUNG."
-                    );
+                if (!isDeathRealm(location)) {
+                    player.sendMessage("§cAltar harus berada di ALAMKACUNG!");
                     return true;
                 }
 
-                altarManager.setRebirthAltar(
-                        player.getLocation()
-                );
+                altarManager.setRebirthAltar(location);
+                player.sendMessage("§aLokasi Altar Kelahiran berhasil disimpan!");
+                break;
 
-                player.sendMessage(
-                        "§aAltar Kelahiran berhasil disimpan!"
-                );
+            case "setportalmasuk":
+                if (isDeathRealm(location)) {
+                    player.sendMessage("§cPortal masuk harus berada di dunia utama!");
+                    return true;
+                }
+
+                portalManager.setPortalEntry(location);
+                player.sendMessage("§aLokasi portal masuk berhasil disimpan!");
+                break;
+
+            case "setportalkeluar":
+                if (!isDeathRealm(location)) {
+                    player.sendMessage("§cPortal keluar harus berada di ALAMKACUNG!");
+                    return true;
+                }
+
+                portalManager.setPortalExit(location);
+                player.sendMessage("§aLokasi portal keluar berhasil disimpan!");
                 break;
 
             default:
-                sendHelp(player);
+                player.sendMessage("§cCommand tidak dikenal.");
                 break;
         }
 
         return true;
     }
 
-    private void sendHelp(Player player) {
-        player.sendMessage("§5===== ALAMKACUNG =====");
-        player.sendMessage("§d/alamkacung setpemanggilan");
-        player.sendMessage("§d/alamkacung setkelahiran");
+    private boolean isDeathRealm(Location location) {
+        return location.getWorld() != null
+                && location.getWorld().getName().equalsIgnoreCase("DeathRealm");
     }
 }
