@@ -12,7 +12,7 @@ public class DeathRealmMessages {
 
     public void sendEntryMessage(Player player) {
         player.sendTitle(
-                "§5DEATHREALM",
+                "§5ALAMKACUNG",
                 "§7Jiwamu telah meninggalkan dunia kehidupan",
                 10,
                 60,
@@ -20,7 +20,7 @@ public class DeathRealmMessages {
         );
 
         player.sendMessage(
-                "§8[§5DeathRealm§8] §7Kamu memiliki waktu 25 menit sebelum dibangkitkan."
+                "§8[§5ALAMKACUNG§8] §7Kamu memiliki waktu 25 menit sebelum dibangkitkan."
         );
     }
 
@@ -34,13 +34,13 @@ public class DeathRealmMessages {
         );
 
         player.sendMessage(
-                "§8[§aDeathRealm§8] §aKamu berhasil dibangkitkan!"
+                "§8[§aALAMKACUNG§8] §aKamu berhasil dibangkitkan!"
         );
     }
 
     public void sendAlmostExpiredMessage(Player player) {
         player.sendMessage(
-                "§8[§cDeathRealm§8] §cWaktumu hampir habis!"
+                "§8[§cALAMKACUNG§8] §cWaktumu hampir habis!"
         );
     }
 }
