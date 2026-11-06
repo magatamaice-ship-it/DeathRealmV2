@@ -15,7 +15,10 @@ public class DeathRealmPortalManager {
 
     public DeathRealmPortalManager(DeathRealm plugin) {
         this.plugin = plugin;
-        this.file = new File(plugin.getDataFolder(), "portals.yml");
+        this.file = new File(
+                plugin.getDataFolder(),
+                "portals.yml"
+        );
 
         if (!plugin.getDataFolder().exists()) {
             plugin.getDataFolder().mkdirs();
@@ -25,11 +28,25 @@ public class DeathRealmPortalManager {
     }
 
     public void setPortalEntry(Location location) {
+        if (location == null || location.getWorld() == null) {
+            plugin.getLogger().warning(
+                    "Lokasi portal masuk tidak valid!"
+            );
+            return;
+        }
+
         config.set("portal-masuk", location);
         save();
     }
 
     public void setPortalExit(Location location) {
+        if (location == null || location.getWorld() == null) {
+            plugin.getLogger().warning(
+                    "Lokasi portal keluar tidak valid!"
+            );
+            return;
+        }
+
         config.set("portal-keluar", location);
         save();
     }
@@ -45,11 +62,11 @@ public class DeathRealmPortalManager {
     private void save() {
         try {
             config.save(file);
-        } catch (IOException e) {
+        } catch (IOException exception) {
             plugin.getLogger().severe(
-                "Gagal menyimpan lokasi portal ALAMKACUNG!"
+                    "Gagal menyimpan lokasi portal ALAMKACUNG: "
+                    + exception.getMessage()
             );
-            e.printStackTrace();
         }
     }
 }
