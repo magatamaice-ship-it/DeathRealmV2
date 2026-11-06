@@ -1,3 +1,4 @@
+
 package id.deathrealm;
 
 import org.bukkit.Bukkit;
@@ -92,7 +93,15 @@ public class DeathRealmResurrection {
                 return;
             }
 
+            // Hapus tampilan fragmen sebelum data lokasinya dihapus.
+            plugin.getSoulFragmentDisplay().removeFragments(uuid);
+
+            // Hapus seluruh progres dan lokasi ujian lama.
+            plugin.getSoulFragmentManager().resetTrial(uuid);
+
+            // Hapus timer kematian dan siklus ujian.
             timerManager.removeTimer(uuid);
+
             bossBar.hide(player);
 
             player.setFlying(false);
