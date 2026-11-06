@@ -122,7 +122,10 @@ public class DeathRealmSoulFragmentRitual implements Listener {
 
         if (player == null || !player.isOnline()
                 || !plugin.getTimerManager().hasTimer(uuid)) {
-            cancelRitual(uuid, "§cRitual dibatalkan.");
+            cancelRitual(
+                    uuid,
+                    "§cRitual dibatalkan."
+            );
             return;
         }
 
@@ -230,7 +233,18 @@ public class DeathRealmSoulFragmentRitual implements Listener {
         }
     }
 
-    private void cancelRitual(UUID uuid, String message) {
+    /**
+     * Membatalkan ritual kebangkitan sendiri milik pemain.
+     * Dapat dipanggil oleh sistem ritual kebangkitan teman.
+     */
+    public void cancelRitual(UUID uuid) {
+        cancelRitual(
+                uuid,
+                "§cRitual kebangkitanmu dibatalkan karena ada kebangkitan lain."
+        );
+    }
+
+    public void cancelRitual(UUID uuid, String message) {
         RitualData data = activeRituals.remove(uuid);
 
         if (data == null) {
@@ -250,6 +264,10 @@ public class DeathRealmSoulFragmentRitual implements Listener {
                     0.7f
             );
         }
+    }
+
+    public boolean isRitualActive(UUID uuid) {
+        return activeRituals.containsKey(uuid);
     }
 
     private void cleanup(RitualData data) {
@@ -297,7 +315,10 @@ public class DeathRealmSoulFragmentRitual implements Listener {
 
     public void stop() {
         for (UUID uuid : activeRituals.keySet().toArray(new UUID[0])) {
-            cancelRitual(uuid, "§cRitual dihentikan karena server dimatikan.");
+            cancelRitual(
+                    uuid,
+                    "§cRitual dihentikan karena server dimatikan."
+            );
         }
     }
 
@@ -313,4 +334,4 @@ public class DeathRealmSoulFragmentRitual implements Listener {
             this.bossBar = bossBar;
         }
     }
-              }
+}
