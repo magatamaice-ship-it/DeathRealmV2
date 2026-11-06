@@ -1,20 +1,21 @@
+
 name: DeathRealmV2
 version: 2.0.0
 main: id.deathrealm.DeathRealm
 api-version: '1.21'
-author: DeathRealm
-description: Advanced death dimension and resurrection system
-
 softdepend:
   - ProtocolLib
 
 commands:
   lahirkankembali:
-    description: Melahirkan kembali pemain secara instan
-    usage: /lahirkankembali <nama_player>
-    permission: deathrealm.admin
+    description: Perintah kebangkitan pemain
+    usage: /lahirkankembali <player>
+
+  alamkacung:
+    description: Pengaturan sistem ALAMKACUNG
+    usage: /alamkacung <setpemanggilan|setkelahiran|setportalmasuk|setportalkeluar>
 
 permissions:
   deathrealm.admin:
-    description: Mengizinkan penggunaan perintah kelahiran kembali
+    description: Akses administrasi DeathRealm
     default: op
