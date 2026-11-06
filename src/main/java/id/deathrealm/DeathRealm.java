@@ -95,6 +95,10 @@ public final class DeathRealm extends JavaPlugin {
         );
 
         Bukkit.getPluginManager().registerEvents(
+                new DeathRealmAltarListener(this, altarManager), this
+        );
+
+        Bukkit.getPluginManager().registerEvents(
                 new DeathRealmCommandProtection(this), this
         );
 
