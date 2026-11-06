@@ -4,7 +4,9 @@ package id.deathrealm;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 import java.util.HashSet;
@@ -35,6 +37,10 @@ public class DeathRealmResurrection {
         this.cinematic = new DeathRealmResurrectionCinematic(plugin);
     }
 
+    public boolean isResurrecting(UUID uuid) {
+        return resurrecting.contains(uuid);
+    }
+
     public boolean resurrect(Player player) {
         return resurrect(player, null);
     }
@@ -60,8 +66,8 @@ public class DeathRealmResurrection {
 
         if (destination == null) {
             plugin.getLogger().severe(
-                    "Lokasi kebangkitan tidak tersedia untuk "
-                    + player.getName()
+                    "Lokasi kebangkitan tidak aman untuk "
+                            + player.getName()
             );
 
             resurrecting.remove(uuid);
@@ -77,19 +83,10 @@ public class DeathRealmResurrection {
 
         try {
             cinematic.play(player, () -> {
-                if (!player.isOnline()) {
-                    resurrecting.remove(uuid);
-                    notifyResult(onComplete, false);
-                    return;
-                }
 
-                if (!timerManager.hasTimer(uuid)) {
-                    resurrecting.remove(uuid);
-                    notifyResult(onComplete, false);
-                    return;
-                }
-
-                if (finalDestination.getWorld() == null) {
+                if (!player.isOnline()
+                        || !timerManager.hasTimer(uuid)
+                        || finalDestination.getWorld() == null) {
                     resurrecting.remove(uuid);
                     notifyResult(onComplete, false);
                     return;
@@ -130,12 +127,13 @@ public class DeathRealmResurrection {
 
                 notifyResult(onComplete, true);
             });
+
         } catch (Exception exception) {
             resurrecting.remove(uuid);
 
             plugin.getLogger().severe(
                     "Kesalahan cinematic kebangkitan: "
-                    + exception.getMessage()
+                            + exception.getMessage()
             );
 
             notifyResult(onComplete, false);
@@ -157,8 +155,10 @@ public class DeathRealmResurrection {
     private Location findDestination(Player player) {
         Location bed = player.getBedSpawnLocation();
 
-        if (isValidDestination(bed)) {
-            return bed;
+        Location safeBed = findSafeLocation(bed);
+
+        if (safeBed != null) {
+            return safeBed;
         }
 
         World mainWorld = null;
@@ -174,16 +174,58 @@ public class DeathRealmResurrection {
             return null;
         }
 
-        Location spawn = mainWorld.getSpawnLocation();
-
-        return isValidDestination(spawn) ? spawn : null;
+        return findSafeLocation(mainWorld.getSpawnLocation());
     }
 
-    private boolean isValidDestination(Location location) {
-        return location != null
-                && location.getWorld() != null
-                && Double.isFinite(location.getX())
-                && Double.isFinite(location.getY())
-                && Double.isFinite(location.getZ());
+    private Location findSafeLocation(Location base) {
+        if (base == null || base.getWorld() == null) {
+            return null;
+        }
+
+        World world = base.getWorld();
+
+        for (int height = 0; height <= 5; height++) {
+
+            Location candidate = base.clone().add(0, height, 0);
+
+            candidate.setX(candidate.getBlockX() + 0.5);
+            candidate.setZ(candidate.getBlockZ() + 0.5);
+
+            int y = candidate.getBlockY();
+
+            if (y <= world.getMinHeight()
+                    || y + 1 >= world.getMaxHeight()) {
+                continue;
+            }
+
+            if (!world.getWorldBorder().isInside(candidate)) {
+                continue;
+            }
+
+            Block feet = candidate.getBlock();
+            Block head = candidate.clone().add(0, 1, 0).getBlock();
+            Block ground = candidate.clone().subtract(0, 1, 0).getBlock();
+
+            if (!feet.isPassable() || !head.isPassable()) {
+                continue;
+            }
+
+            Material groundType = ground.getType();
+
+            if (!groundType.isSolid()
+                    || groundType == Material.MAGMA_BLOCK
+                    || groundType == Material.CACTUS
+                    || groundType == Material.CAMPFIRE
+                    || groundType == Material.SOUL_CAMPFIRE
+                    || groundType == Material.FIRE
+                    || groundType == Material.SOUL_FIRE
+                    || groundType == Material.LAVA) {
+                continue;
+            }
+
+            return candidate;
+        }
+
+        return null;
     }
 }
