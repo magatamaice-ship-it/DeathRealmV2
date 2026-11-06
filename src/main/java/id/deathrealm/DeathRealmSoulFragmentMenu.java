@@ -47,6 +47,7 @@ public class DeathRealmSoulFragmentMenu implements Listener {
         }
 
         MenuHolder holder = new MenuHolder();
+
         Inventory inventory = Bukkit.createInventory(
                 holder,
                 27,
@@ -67,10 +68,7 @@ public class DeathRealmSoulFragmentMenu implements Listener {
             inventory.setItem(slot, background);
         }
 
-        ItemStack button = new ItemStack(
-                Material.NETHER_STAR
-        );
-
+        ItemStack button = new ItemStack(Material.NETHER_STAR);
         ItemMeta meta = button.getItemMeta();
 
         boolean active = fragmentManager.isTrialActive(
@@ -85,8 +83,7 @@ public class DeathRealmSoulFragmentMenu implements Listener {
                     "§eFragmen terkumpul: §f"
                             + fragmentManager.getCollectedCount(
                                     player.getUniqueId()
-                            )
-                            + "/3",
+                            ) + "/3",
                     "",
                     "§aKlik untuk melanjutkan."
             ));
@@ -141,15 +138,23 @@ public class DeathRealmSoulFragmentMenu implements Listener {
                 player.getUniqueId()
         )) {
             player.closeInventory();
-            player.sendMessage(
-                    "§5[ALAMKACUNG] §dPencarian Fragmen Jiwa sudah aktif."
+
+            plugin.getSoulFragmentDisplay().spawnFragments(
+                    player.getUniqueId(),
+                    player.getName()
             );
+
+            player.sendMessage(
+                    "§5[ALAMKACUNG] §dPencarian Fragmen Jiwa dilanjutkan."
+            );
+
             player.sendMessage(
                     "§7Fragmen terkumpul: §f"
-                    + fragmentManager.getCollectedCount(
-                            player.getUniqueId()
-                    ) + "/3"
+                            + fragmentManager.getCollectedCount(
+                                    player.getUniqueId()
+                            ) + "/3"
             );
+
             return;
         }
 
@@ -165,6 +170,11 @@ public class DeathRealmSoulFragmentMenu implements Listener {
             );
             return;
         }
+
+        plugin.getSoulFragmentDisplay().spawnFragments(
+                player.getUniqueId(),
+                player.getName()
+        );
 
         player.sendTitle(
                 "§5TAHAP 2 DIMULAI",
@@ -192,4 +202,4 @@ public class DeathRealmSoulFragmentMenu implements Listener {
             return inventory;
         }
     }
-          }
+}
