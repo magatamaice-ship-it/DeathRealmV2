@@ -1,3 +1,4 @@
+
 package id.deathrealm;
 
 import org.bukkit.Location;
@@ -33,7 +34,6 @@ public class DeathRealmHorizontalBoundary implements Listener {
             return;
         }
 
-        Location from = event.getFrom();
         Location to = event.getTo();
 
         if (to == null || !outside(to)) {
@@ -53,7 +53,8 @@ public class DeathRealmHorizontalBoundary implements Listener {
     public void onTeleport(PlayerTeleportEvent event) {
         Location destination = event.getTo();
 
-        if (!isDeathRealm(destination.getWorld())) {
+        if (destination == null
+                || !isDeathRealm(destination.getWorld())) {
             return;
         }
 
