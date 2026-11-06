@@ -59,25 +59,40 @@ public class DeathRealmTimerTask {
 
             timerManager.unlockTrial(uuid);
 
-            if (timerManager.isTrialUnlocked(uuid)) {
-                processed.add(uuid);
-
-                player.sendTitle(
-                        "§5UJIAN KEBANGKITAN",
-                        "§dKumpulkan 3 Fragmen Jiwa",
-                        10,
-                        70,
-                        20
-                );
-
-                player.sendMessage(
-                        "§5[ALAMKACUNG] §dUjian kebangkitanmu telah terbuka!"
-                );
-
-                player.sendMessage(
-                        "§7Temukan tiga Fragmen Jiwa untuk kembali hidup."
-                );
+            if (!timerManager.isTrialUnlocked(uuid)) {
+                continue;
             }
+
+            processed.add(uuid);
+
+            player.sendTitle(
+                    "§5UJIAN KEBANGKITAN",
+                    "§dKumpulkan 3 Fragmen Jiwa",
+                    10,
+                    70,
+                    20
+            );
+
+            player.sendMessage(
+                    "§5[ALAMKACUNG] §dUjian kebangkitanmu telah terbuka!"
+            );
+
+            player.sendMessage(
+                    "§7Mulai Tahap 2 untuk mencari tiga Fragmen Jiwa."
+            );
+
+            Bukkit.getScheduler().runTaskLater(
+                    plugin,
+                    () -> {
+                        if (player.isOnline()
+                                && timerManager.hasTimer(uuid)
+                                && timerManager.isTrialUnlocked(uuid)) {
+
+                            plugin.getSoulFragmentMenu().openMenu(player);
+                        }
+                    },
+                    40L
+            );
         }
     }
 
