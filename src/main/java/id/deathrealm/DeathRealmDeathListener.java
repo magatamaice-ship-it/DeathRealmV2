@@ -60,12 +60,10 @@ public class DeathRealmDeathListener implements Listener {
 
         visibility.refreshAll();
 
-        cinematic.playDeathAnimation(player, () -> {
-            if (!player.isOnline()) {
-                return;
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (player.isOnline()) {
+                player.spigot().respawn();
             }
-
-            player.spigot().respawn();
         });
     }
 
@@ -89,11 +87,9 @@ public class DeathRealmDeathListener implements Listener {
         }
 
         Location destination = deathWorld.getSpawnLocation();
-
         event.setRespawnLocation(destination);
 
         Bukkit.getScheduler().runTask(plugin, () -> {
-
             if (!player.isOnline()) {
                 return;
             }
@@ -111,13 +107,19 @@ public class DeathRealmDeathListener implements Listener {
                 }
             }
 
-            protection.preparePlayer(player);
-            bossBar.show(player);
-            entryEffect.play(player);
+            cinematic.playDeathAnimation(player, () -> {
+                if (!player.isOnline()) {
+                    return;
+                }
 
-            plugin.getMessages().sendEntryMessage(player);
+                protection.preparePlayer(player);
+                bossBar.show(player);
+                entryEffect.play(player);
 
-            visibility.refreshAll();
+                plugin.getMessages().sendEntryMessage(player);
+
+                visibility.refreshAll();
+            });
         });
     }
 }
