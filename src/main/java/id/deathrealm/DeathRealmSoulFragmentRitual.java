@@ -122,10 +122,7 @@ public class DeathRealmSoulFragmentRitual implements Listener {
 
         if (player == null || !player.isOnline()
                 || !plugin.getTimerManager().hasTimer(uuid)) {
-            cancelRitual(
-                    uuid,
-                    "§cRitual dibatalkan."
-            );
+            cancelRitual(uuid, "§cRitual dibatalkan.");
             return;
         }
 
@@ -193,9 +190,9 @@ public class DeathRealmSoulFragmentRitual implements Listener {
             return;
         }
 
-        Player player = Bukkit.getPlayer(uuid);
-
         cleanup(data);
+
+        Player player = Bukkit.getPlayer(uuid);
 
         if (player == null || !player.isOnline()) {
             return;
@@ -210,7 +207,7 @@ public class DeathRealmSoulFragmentRitual implements Listener {
 
         player.getWorld().spawnParticle(
                 Particle.TOTEM_OF_UNDYING,
-                player.getLocation().add(0, 1, 0),
+                player.getLocation().clone().add(0, 1, 0),
                 80,
                 1.0,
                 1.0,
@@ -219,26 +216,33 @@ public class DeathRealmSoulFragmentRitual implements Listener {
         );
 
         player.sendTitle(
-                "§aKEBANGKITAN BERHASIL",
-                "§fJiwamu kembali ke dunia kehidupan",
+                "§5KEBANGKITAN",
+                "§fJiwamu sedang kembali...",
                 10,
                 60,
                 20
         );
 
-        boolean success = resurrection.resurrect(player);
+        boolean started = resurrection.resurrect(player, success -> {
+            if (!success) {
+                if (player.isOnline()) {
+                    player.sendMessage(
+                            "§cKebangkitan gagal. Kamu masih berada di ALAMKACUNG."
+                    );
+                }
+                return;
+            }
 
-        if (!success) {
+            // Batalkan ritual teman hanya setelah teleport berhasil.
+            plugin.getFriendRevivalManager()
+                    .cancelRitualForTarget(uuid);
+        });
+
+        if (!started) {
             player.sendMessage(
-                    "§cKebangkitan gagal. Kamu masih berada di ALAMKACUNG."
+                    "§cKebangkitan gagal dimulai. Periksa lokasi tujuan."
             );
-            return;
         }
-
-        // Ritual sendiri berhasil lebih dahulu.
-        // Batalkan ritual kebangkitan teman untuk pemain ini.
-        plugin.getFriendRevivalManager()
-                .cancelRitualForTarget(uuid);
     }
 
     public void cancelRitual(UUID uuid) {
