@@ -229,6 +229,12 @@ public final class DeathRealm extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        // Hentikan ritual kebangkitan sendiri terlebih dahulu.
+        if (soulFragmentRitual != null) {
+            soulFragmentRitual.stop();
+        }
+
+        // Setelah itu, hentikan ritual kebangkitan teman.
         if (friendRevivalManager != null) {
             friendRevivalManager.stop();
         }
@@ -238,10 +244,6 @@ public final class DeathRealm extends JavaPlugin {
         if (coordinateDisplay != null) coordinateDisplay.stop();
         if (atmosphere != null) atmosphere.stop();
         if (warningTask != null) warningTask.stop();
-
-        if (soulFragmentRitual != null) {
-            soulFragmentRitual.stop();
-        }
 
         if (soulFragmentListener != null) {
             soulFragmentListener.stop();
