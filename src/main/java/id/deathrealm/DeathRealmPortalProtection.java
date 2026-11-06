@@ -18,6 +18,8 @@ public class DeathRealmPortalProtection implements Listener {
     private final DeathRealm plugin;
     private final Set<UUID> teleportCooldown = new HashSet<>();
 
+    private static final double PORTAL_RADIUS = 1.5;
+
     public DeathRealmPortalProtection(DeathRealm plugin) {
         this.plugin = plugin;
     }
@@ -59,9 +61,9 @@ public class DeathRealmPortalProtection implements Listener {
 
         Location destination = null;
 
-        if (isPortalLocation(event.getTo(), entry)) {
+        if (isInsidePortalArea(event.getTo(), entry)) {
             destination = exit;
-        } else if (isPortalLocation(event.getTo(), exit)) {
+        } else if (isInsidePortalArea(event.getTo(), exit)) {
             destination = entry;
         }
 
@@ -80,7 +82,7 @@ public class DeathRealmPortalProtection implements Listener {
         );
     }
 
-    private boolean isPortalLocation(
+    private boolean isInsidePortalArea(
             Location playerLocation,
             Location portalLocation
     ) {
@@ -90,9 +92,11 @@ public class DeathRealmPortalProtection implements Listener {
             return false;
         }
 
-        return playerLocation.getWorld().equals(portalLocation.getWorld())
-                && playerLocation.getBlockX() == portalLocation.getBlockX()
-                && playerLocation.getBlockY() == portalLocation.getBlockY()
-                && playerLocation.getBlockZ() == portalLocation.getBlockZ();
+        if (!playerLocation.getWorld().equals(portalLocation.getWorld())) {
+            return false;
+        }
+
+        return playerLocation.distanceSquared(portalLocation)
+                <= PORTAL_RADIUS * PORTAL_RADIUS;
     }
 }
