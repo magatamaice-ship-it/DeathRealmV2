@@ -226,17 +226,21 @@ public class DeathRealmSoulFragmentRitual implements Listener {
                 20
         );
 
-        if (!resurrection.resurrect(player)) {
+        boolean success = resurrection.resurrect(player);
+
+        if (!success) {
             player.sendMessage(
                     "§cKebangkitan gagal. Kamu masih berada di ALAMKACUNG."
             );
+            return;
         }
+
+        // Ritual sendiri berhasil lebih dahulu.
+        // Batalkan ritual kebangkitan teman untuk pemain ini.
+        plugin.getFriendRevivalManager()
+                .cancelRitualForTarget(uuid);
     }
 
-    /**
-     * Membatalkan ritual kebangkitan sendiri milik pemain.
-     * Dapat dipanggil oleh sistem ritual kebangkitan teman.
-     */
     public void cancelRitual(UUID uuid) {
         cancelRitual(
                 uuid,
