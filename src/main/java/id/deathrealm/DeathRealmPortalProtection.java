@@ -2,12 +2,14 @@
 package id.deathrealm;
 
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -20,6 +22,7 @@ public class DeathRealmPortalProtection implements Listener {
 
     private static final double PORTAL_RADIUS = 1.5;
     private static final double EXIT_OFFSET = 2.0;
+    private static final int MAX_SAFE_HEIGHT = 5;
 
     public DeathRealmPortalProtection(DeathRealm plugin) {
         this.plugin = plugin;
@@ -56,8 +59,11 @@ public class DeathRealmPortalProtection implements Listener {
         Location exit = plugin.getPortalManager().getPortalExit();
 
         if (teleportCooldown.contains(uuid)) {
-            boolean insideEntry = isInsidePortalArea(event.getTo(), entry);
-            boolean insideExit = isInsidePortalArea(event.getTo(), exit);
+            boolean insideEntry =
+                    isInsidePortalArea(event.getTo(), entry);
+
+            boolean insideExit =
+                    isInsidePortalArea(event.getTo(), exit);
 
             if (!insideEntry && !insideExit) {
                 teleportCooldown.remove(uuid);
@@ -66,6 +72,7 @@ public class DeathRealmPortalProtection implements Listener {
             return;
         }
 
+        // Pemain mati tidak boleh menggunakan portal biasa.
         if (plugin.getTimerManager().hasTimer(uuid)) {
             return;
         }
@@ -82,8 +89,15 @@ public class DeathRealmPortalProtection implements Listener {
             return;
         }
 
-        Location safeDestination = destination.clone();
-        safeDestination.add(0, 0, EXIT_OFFSET);
+        Location safeDestination = findSafeLocation(destination);
+
+        // Jangan teleport jika tidak ditemukan tempat aman.
+        if (safeDestination == null) {
+            player.sendMessage(
+                    "§cPortal tidak dapat digunakan: lokasi tujuan tidak aman."
+            );
+            return;
+        }
 
         teleportCooldown.add(uuid);
 
@@ -92,6 +106,54 @@ public class DeathRealmPortalProtection implements Listener {
         if (!success) {
             teleportCooldown.remove(uuid);
         }
+    }
+
+    private Location findSafeLocation(Location destination) {
+        World world = destination.getWorld();
+
+        if (world == null) {
+            return null;
+        }
+
+        Location base = destination.clone();
+        base.add(0, 0, EXIT_OFFSET);
+
+        for (int height = 0; height <= MAX_SAFE_HEIGHT; height++) {
+
+            Location candidate = base.clone();
+            candidate.add(0, height, 0);
+
+            candidate.setX(candidate.getBlockX() + 0.5);
+            candidate.setZ(candidate.getBlockZ() + 0.5);
+
+            int feetY = candidate.getBlockY();
+
+            if (feetY <= world.getMinHeight()
+                    || feetY + 1 >= world.getMaxHeight()) {
+                continue;
+            }
+
+            Location feet = candidate.clone();
+            Location head = candidate.clone();
+            Location ground = candidate.clone().subtract(0, 1, 0);
+
+            if (!world.getWorldBorder().isInside(candidate)) {
+                continue;
+            }
+
+            if (!feet.getBlock().isPassable()
+                    || !head.getBlock().isPassable()) {
+                continue;
+            }
+
+            if (!ground.getBlock().getType().isSolid()) {
+                continue;
+            }
+
+            return candidate;
+        }
+
+        return null;
     }
 
     private boolean isInsidePortalArea(
@@ -104,11 +166,18 @@ public class DeathRealmPortalProtection implements Listener {
             return false;
         }
 
-        if (!playerLocation.getWorld().equals(portalLocation.getWorld())) {
+        if (!playerLocation.getWorld().equals(
+                portalLocation.getWorld()
+        )) {
             return false;
         }
 
         return playerLocation.distanceSquared(portalLocation)
                 <= PORTAL_RADIUS * PORTAL_RADIUS;
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        teleportCooldown.remove(event.getPlayer().getUniqueId());
     }
 }
