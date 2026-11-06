@@ -1,3 +1,4 @@
+
 package id.deathrealm;
 
 import org.bukkit.Bukkit;
@@ -54,11 +55,26 @@ public class DeathRealmCommand implements CommandExecutor {
             return true;
         }
 
-        resurrection.resurrect(target);
+        boolean started = resurrection.resurrect(target, success -> {
+            if (success) {
+                sender.sendMessage(
+                        "§aBerhasil membangkitkan §f"
+                                + target.getName() + "§a!"
+                );
+            } else {
+                sender.sendMessage(
+                        "§cKebangkitan §f"
+                                + target.getName()
+                                + " §cgagal atau dibatalkan."
+                );
+            }
+        });
 
-        sender.sendMessage(
-                "§aBerhasil membangkitkan §f" + target.getName() + "§a!"
-        );
+        if (!started) {
+            sender.sendMessage(
+                    "§cProses kebangkitan tidak dapat dimulai."
+            );
+        }
 
         return true;
     }
