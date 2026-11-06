@@ -164,6 +164,7 @@ public class DeathRealmFriendRevivalManager implements Listener {
                 () -> {
                     if (!canRevive(targetId)) {
                         cancelRitual(targetId);
+
                         if (initiator.isOnline()) {
                             initiator.sendMessage(
                                     "§cRitual dibatalkan. Target sudah tidak berstatus mati."
@@ -233,6 +234,8 @@ public class DeathRealmFriendRevivalManager implements Listener {
             return;
         }
 
+        cleanupOfflineTarget(targetId);
+
         pendingRevival.add(targetId);
         save();
 
@@ -241,6 +244,11 @@ public class DeathRealmFriendRevivalManager implements Listener {
                     "§aRitual berhasil! Jiwa target akan kembali saat ia masuk server."
             );
         }
+    }
+
+    private void cleanupOfflineTarget(UUID targetId) {
+        plugin.getSoulFragmentDisplay().removeFragments(targetId);
+        plugin.getSoulFragmentManager().resetTrial(targetId);
     }
 
     private void cancelRitual(UUID targetId) {
