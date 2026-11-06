@@ -53,7 +53,7 @@ public class DeathRealmBossBar {
         BossBar bar = bossBars.computeIfAbsent(
                 uuid,
                 key -> Bukkit.createBossBar(
-                        "Waktu di DeathRealm",
+                        "Waktu di ALAMKACUNG",
                         BarColor.PURPLE,
                         BarStyle.SOLID
                 )
@@ -113,7 +113,7 @@ public class DeathRealmBossBar {
                 Math.min(1.0, (double) remaining / DEATH_TIME)
         );
 
-        bar.setTitle("§5DeathRealm §8| §fWaktu tersisa: §d" + time);
+        bar.setTitle("§5ALAMKACUNG §8| §fWaktu tersisa: §d" + time);
         bar.setProgress(progress);
     }
 
