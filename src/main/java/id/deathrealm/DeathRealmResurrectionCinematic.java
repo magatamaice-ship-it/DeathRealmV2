@@ -20,8 +20,6 @@ public class DeathRealmResurrectionCinematic {
         boolean previousInvulnerable = player.isInvulnerable();
         float previousWalkSpeed = player.getWalkSpeed();
         float previousFlySpeed = player.getFlySpeed();
-        boolean previousAllowFlight = player.getAllowFlight();
-        boolean previousFlying = player.isFlying();
 
         Location location = player.getLocation().clone();
 
@@ -38,11 +36,39 @@ public class DeathRealmResurrectionCinematic {
 
         new BukkitRunnable() {
             private int tick = 0;
+            private boolean completed = false;
+
+            private void finish() {
+                if (completed) {
+                    return;
+                }
+
+                completed = true;
+
+                if (!player.isOnline()) {
+                    onComplete.run();
+                    return;
+                }
+
+                player.setInvulnerable(previousInvulnerable);
+                player.setWalkSpeed(previousWalkSpeed);
+                player.setFlySpeed(previousFlySpeed);
+
+                player.getWorld().playSound(
+                        player.getLocation(),
+                        Sound.ITEM_TOTEM_USE,
+                        1.5f,
+                        1.0f
+                );
+
+                onComplete.run();
+            }
 
             @Override
             public void run() {
                 if (!player.isOnline()) {
                     cancel();
+                    finish();
                     return;
                 }
 
@@ -60,29 +86,7 @@ public class DeathRealmResurrectionCinematic {
                 if (tick >= 20) {
                     cancel();
 
-                    camera.play(player, () -> {
-                        if (!player.isOnline()) {
-                            return;
-                        }
-
-                        player.setInvulnerable(previousInvulnerable);
-                        player.setWalkSpeed(previousWalkSpeed);
-                        player.setFlySpeed(previousFlySpeed);
-                        player.setAllowFlight(previousAllowFlight);
-
-                        if (previousAllowFlight) {
-                            player.setFlying(previousFlying);
-                        }
-
-                        player.getWorld().playSound(
-                                player.getLocation(),
-                                Sound.ITEM_TOTEM_USE,
-                                1.5f,
-                                1.0f
-                        );
-
-                        onComplete.run();
-                    });
+                    camera.play(player, this::finish);
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
