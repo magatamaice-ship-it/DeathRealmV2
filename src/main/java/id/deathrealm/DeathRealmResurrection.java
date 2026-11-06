@@ -115,6 +115,21 @@ public class DeathRealmResurrection {
 
                 restoreLivingPlayer(player);
 
+                // Pastikan status normal diterapkan setelah event teleport selesai.
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (!player.isOnline()) {
+                        return;
+                    }
+
+                    if (player.getWorld().getName()
+                            .equalsIgnoreCase("DeathRealm")) {
+                        return;
+                    }
+
+                    restoreLivingPlayer(player);
+                    visibility.refreshAll();
+                });
+
                 plugin.getMessages().sendResurrectionMessage(player);
 
                 resurrecting.remove(uuid);
@@ -140,25 +155,28 @@ public class DeathRealmResurrection {
 
     private void restoreLivingPlayer(Player player) {
         player.setInvulnerable(false);
+        player.setNoDamageTicks(0);
+
         player.setFlying(false);
         player.setAllowFlight(false);
         player.setGameMode(GameMode.SURVIVAL);
 
-        // Bersihkan efek potion yang mungkin terbawa dari ALAMKACUNG.
         for (PotionEffect effect : player.getActivePotionEffects()) {
             player.removePotionEffect(effect.getType());
         }
 
         player.setHealth(player.getMaxHealth());
         player.setFoodLevel(20);
-        player.setSaturation(20);
+
+        // Saturation nol agar hunger kembali berkurang secara normal.
+        player.setSaturation(0);
         player.setExhaustion(0);
+
         player.setFireTicks(0);
         player.setFallDistance(0);
         player.setFreezeTicks(0);
         player.setArrowsInBody(0);
         player.setRemainingAir(player.getMaximumAir());
-        player.setNoDamageTicks(0);
     }
 
     private void notifyResult(
