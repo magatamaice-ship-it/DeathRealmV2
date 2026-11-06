@@ -19,6 +19,7 @@ public class DeathRealmPortalProtection implements Listener {
     private final Set<UUID> teleportCooldown = new HashSet<>();
 
     private static final double PORTAL_RADIUS = 1.5;
+    private static final double EXIT_OFFSET = 2.0;
 
     public DeathRealmPortalProtection(DeathRealm plugin) {
         this.plugin = plugin;
@@ -55,7 +56,6 @@ public class DeathRealmPortalProtection implements Listener {
         Location exit = plugin.getPortalManager().getPortalExit();
 
         if (teleportCooldown.contains(uuid)) {
-
             boolean insideEntry = isInsidePortalArea(event.getTo(), entry);
             boolean insideExit = isInsidePortalArea(event.getTo(), exit);
 
@@ -82,9 +82,12 @@ public class DeathRealmPortalProtection implements Listener {
             return;
         }
 
+        Location safeDestination = destination.clone();
+        safeDestination.add(0, 0, EXIT_OFFSET);
+
         teleportCooldown.add(uuid);
 
-        boolean success = player.teleport(destination.clone());
+        boolean success = player.teleport(safeDestination);
 
         if (!success) {
             teleportCooldown.remove(uuid);
