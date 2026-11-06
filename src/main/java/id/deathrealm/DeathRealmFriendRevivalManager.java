@@ -1,4 +1,3 @@
-
 package id.deathrealm;
 
 import org.bukkit.Bukkit;
@@ -39,7 +38,6 @@ public class DeathRealmFriendRevivalManager implements Listener {
     private final Set<UUID> pendingRevival = new HashSet<>();
     private final Set<UUID> pendingInProgress = new HashSet<>();
     private final Set<UUID> finishingRevival = new HashSet<>();
-
     private final Map<UUID, RefundData> pendingRefunds = new HashMap<>();
 
     private DeathRealmResurrection resurrection;
@@ -202,7 +200,6 @@ public class DeathRealmFriendRevivalManager implements Listener {
                     }
 
                     elapsed[0]++;
-
                     playRitualEffects(altar, elapsed[0]);
 
                     if (elapsed[0] % 30 == 0
@@ -225,9 +222,8 @@ public class DeathRealmFriendRevivalManager implements Listener {
 
         activeRituals.put(targetId, task);
         return true;
-    }
-
-    private List<ItemStack> createRefundItems() {
+            }
+        private List<ItemStack> createRefundItems() {
         List<ItemStack> items = new ArrayList<>();
 
         for (Requirement requirement : requirements) {
@@ -242,7 +238,6 @@ public class DeathRealmFriendRevivalManager implements Listener {
 
                 ItemStack refund = template.clone();
                 refund.setAmount(amount);
-
                 items.add(refund);
                 remaining -= amount;
             }
@@ -263,8 +258,6 @@ public class DeathRealmFriendRevivalManager implements Listener {
             return;
         }
 
-        // Jangan mengembalikan item jika proses penyelesaian
-        // milik ritual lain sudah berjalan.
         if (!finishingRevival.add(targetId)) {
             return;
         }
@@ -297,16 +290,13 @@ public class DeathRealmFriendRevivalManager implements Listener {
                     );
                 }
             });
-
             return;
         }
 
         cleanupOfflineTarget(targetId);
-
         pendingRevival.add(targetId);
         pendingRefunds.remove(targetId);
         finishingRevival.remove(targetId);
-
         save();
 
         if (initiator.isOnline()) {
@@ -324,8 +314,6 @@ public class DeathRealmFriendRevivalManager implements Listener {
     public void cancelRitualForTarget(UUID targetId) {
         if (targetId == null) return;
 
-        // Proses yang sudah masuk tahap penyelesaian tidak dibatalkan
-        // oleh pembatalan ritual biasa.
         if (finishingRevival.contains(targetId)) {
             return;
         }
@@ -347,7 +335,6 @@ public class DeathRealmFriendRevivalManager implements Listener {
         if (targetId == null) return;
 
         RefundData refund = pendingRefunds.get(targetId);
-
         if (refund == null) return;
 
         Player initiator = Bukkit.getPlayer(refund.initiatorId);
@@ -358,7 +345,6 @@ public class DeathRealmFriendRevivalManager implements Listener {
         }
 
         giveItems(initiator, refund.items);
-
         pendingRefunds.remove(targetId);
         save();
 
@@ -435,9 +421,8 @@ public class DeathRealmFriendRevivalManager implements Listener {
                     1.0f
             );
         }
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
+                }
+        @EventHandler(priority = EventPriority.MONITOR)
     public void onTargetJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
@@ -679,7 +664,8 @@ public class DeathRealmFriendRevivalManager implements Listener {
                     if (initiatorValue == null) {
                         continue;
                     }
-                                        UUID initiatorId =
+
+                    UUID initiatorId =
                             UUID.fromString(initiatorValue);
 
                     List<ItemStack> items = new ArrayList<>();
@@ -730,9 +716,27 @@ public class DeathRealmFriendRevivalManager implements Listener {
         }
 
         activeRituals.clear();
-
-        // Item yang sudah dikonsumsi tetap tersimpan sebagai refund.
         save();
+    }
+
+    private static class Requirement {
+
+        private final ItemStack item;
+        private final int amount;
+
+        private Requirement(ItemStack item, int amount) {
+            this.item = item.clone();
+            this.item.setAmount(1);
+            this.amount = amount;
+        }
+
+        public ItemStack getItem() {
+            return item.clone();
+        }
+
+        public int getAmount() {
+            return amount;
+        }
     }
 
     private static class RefundData {
@@ -754,4 +758,4 @@ public class DeathRealmFriendRevivalManager implements Listener {
             }
         }
     }
-}
+                }
