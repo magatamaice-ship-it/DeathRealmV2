@@ -71,6 +71,10 @@ public class DeathRealmSoulFragmentManager {
         return activeTrials.contains(uuid);
     }
 
+    public Set<UUID> getActiveTrialOwners() {
+        return new HashSet<>(activeTrials);
+    }
+
     public List<Location> getLocations(UUID uuid) {
         List<Location> result = locations.get(uuid);
 
@@ -277,10 +281,8 @@ public class DeathRealmSoulFragmentManager {
 
         List<Location> occupiedLocations = new ArrayList<>();
 
-        for (Map.Entry<UUID, List<Location>> entry :
-                locations.entrySet()) {
-
-            for (Location existing : entry.getValue()) {
+        for (List<Location> playerLocations : locations.values()) {
+            for (Location existing : playerLocations) {
                 if (existing.getWorld() != null
                         && existing.getWorld().equals(world)) {
                     occupiedLocations.add(existing);
