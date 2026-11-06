@@ -3,7 +3,6 @@ package id.deathrealm;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -12,9 +11,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -31,11 +32,8 @@ public class DeathRealmSoulFragmentListener implements Listener {
     private final NamespacedKey ownerKey;
     private final NamespacedKey fragmentKey;
 
-    private final Map<UUID, BukkitTask> collecting =
-            new HashMap<>();
-
-    private final Map<UUID, Location> startLocations =
-            new HashMap<>();
+    private final Map<UUID, BukkitTask> collecting = new HashMap<>();
+    private final Map<UUID, Location> startLocations = new HashMap<>();
 
     public DeathRealmSoulFragmentListener(
             DeathRealm plugin,
@@ -45,7 +43,6 @@ public class DeathRealmSoulFragmentListener implements Listener {
         this.plugin = plugin;
         this.fragmentManager = fragmentManager;
         this.fragmentDisplay = fragmentDisplay;
-
         ownerKey = new NamespacedKey(plugin, "soul_owner");
         fragmentKey = new NamespacedKey(plugin, "soul_fragment");
     }
@@ -57,51 +54,41 @@ public class DeathRealmSoulFragmentListener implements Listener {
         }
 
         String ownerText = interaction.getPersistentDataContainer().get(
-                ownerKey,
-                PersistentDataType.STRING
+                ownerKey, PersistentDataType.STRING
         );
 
         Integer fragment = interaction.getPersistentDataContainer().get(
-                fragmentKey,
-                PersistentDataType.INTEGER
+                fragmentKey, PersistentDataType.INTEGER
         );
 
-        if (ownerText == null || fragment == null) {
-            return;
-        }
+        if (ownerText == null || fragment == null) return;
 
         event.setCancelled(true);
 
         Player player = event.getPlayer();
-        UUID playerId = player.getUniqueId();
+        UUID uuid = player.getUniqueId();
 
-        if (!ownerText.equals(playerId.toString())) {
-            player.sendMessage(
-                    "§cFragmen ini bukan milikmu!"
-            );
+        if (!ownerText.equals(uuid.toString())) {
+            player.sendMessage("§cFragmen ini bukan milikmu!");
             return;
         }
 
-        if (!plugin.getTimerManager().hasTimer(playerId)
-                || !plugin.getTimerManager().isTrialUnlocked(playerId)
-                || !fragmentManager.isTrialActive(playerId)) {
+        if (!plugin.getTimerManager().hasTimer(uuid)
+                || !plugin.getTimerManager().isTrialUnlocked(uuid)
+                || !fragmentManager.isTrialActive(uuid)) {
             player.sendMessage(
                     "§cKamu tidak sedang menjalani ujian Fragmen Jiwa."
             );
             return;
         }
 
-        if (fragmentManager.hasCollected(playerId, fragment)) {
-            player.sendMessage(
-                    "§cFragmen ini sudah kamu kumpulkan."
-            );
+        if (fragmentManager.hasCollected(uuid, fragment)) {
+            player.sendMessage("§cFragmen ini sudah kamu kumpulkan.");
             return;
         }
 
-        if (collecting.containsKey(playerId)) {
-            player.sendMessage(
-                    "§eKamu sedang mengumpulkan fragmen."
-            );
+        if (collecting.containsKey(uuid)) {
+            player.sendMessage("§eKamu sedang mengumpulkan fragmen.");
             return;
         }
 
@@ -120,9 +107,7 @@ public class DeathRealmSoulFragmentListener implements Listener {
         player.sendTitle(
                 "§dMENGUMPULKAN FRAGMEN",
                 "§7Jangan bergerak selama 3 detik",
-                0,
-                65,
-                5
+                0, 65, 5
         );
 
         player.playSound(
@@ -141,7 +126,8 @@ public class DeathRealmSoulFragmentListener implements Listener {
                     public void run() {
                         if (!player.isOnline()
                                 || !plugin.getTimerManager().hasTimer(uuid)
-                                || !fragmentManager.isTrialActive(uuid)) {
+                                || !fragmentManager.isTrialActive(uuid)
+                                || !player.getWorld().getName().equals("DeathRealm")) {
                             cancelCollection(uuid, true);
                             return;
                         }
@@ -160,9 +146,7 @@ public class DeathRealmSoulFragmentListener implements Listener {
                                 Particle.END_ROD,
                                 location.clone().add(0, 0.5, 0),
                                 5,
-                                0.25,
-                                0.3,
-                                0.25,
+                                0.25, 0.3, 0.25,
                                 0.02
                         );
 
@@ -171,32 +155,22 @@ public class DeathRealmSoulFragmentListener implements Listener {
                         if (ticks >= 60) {
                             BukkitTask currentTask = collecting.remove(uuid);
 
-                            if (currentTask != null) {
-                                currentTask.cancel();
-                            }
+                            if (currentTask != null) currentTask.cancel();
 
                             startLocations.remove(uuid);
 
-                            boolean success =
-                                    fragmentManager.collectFragment(
-                                            uuid,
-                                            fragment
-                                    );
+                            boolean success = fragmentManager.collectFragment(
+                                    uuid, fragment
+                            );
 
                             if (success) {
-                                fragmentDisplay.removeFragment(
-                                        uuid,
-                                        fragment
-                                );
+                                fragmentDisplay.removeFragment(uuid, fragment);
 
                                 player.sendTitle(
                                         "§aFRAGMEN DIDAPATKAN",
-                                        "§f"
-                                                + fragmentManager.getCollectedCount(uuid)
+                                        "§f" + fragmentManager.getCollectedCount(uuid)
                                                 + "/3 Fragmen Jiwa",
-                                        5,
-                                        50,
-                                        10
+                                        5, 50, 10
                                 );
 
                                 player.playSound(
@@ -228,22 +202,28 @@ public class DeathRealmSoulFragmentListener implements Listener {
     public void onMove(PlayerMoveEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
 
-        if (!collecting.containsKey(uuid)) {
-            return;
-        }
+        if (!collecting.containsKey(uuid)) return;
 
         Location from = event.getFrom();
         Location to = event.getTo();
 
-        if (to == null) {
-            return;
-        }
+        if (to == null) return;
 
         if (from.getBlockX() != to.getBlockX()
                 || from.getBlockY() != to.getBlockY()
                 || from.getBlockZ() != to.getBlockZ()) {
             cancelCollection(uuid, true);
         }
+    }
+
+    @EventHandler
+    public void onTeleport(PlayerTeleportEvent event) {
+        cancelCollection(event.getPlayer().getUniqueId(), true);
+    }
+
+    @EventHandler
+    public void onWorldChange(PlayerChangedWorldEvent event) {
+        cancelCollection(event.getPlayer().getUniqueId(), true);
     }
 
     @EventHandler
@@ -259,9 +239,7 @@ public class DeathRealmSoulFragmentListener implements Listener {
     private void cancelCollection(UUID uuid, boolean notify) {
         BukkitTask task = collecting.remove(uuid);
 
-        if (task != null) {
-            task.cancel();
-        }
+        if (task != null) task.cancel();
 
         startLocations.remove(uuid);
 
@@ -269,7 +247,7 @@ public class DeathRealmSoulFragmentListener implements Listener {
 
         if (notify && player != null && player.isOnline()) {
             player.sendMessage(
-                    "§cPengambilan Fragmen Jiwa dibatalkan karena kamu bergerak."
+                    "§cPengambilan Fragmen Jiwa dibatalkan karena kamu bergerak atau berpindah."
             );
         }
     }
@@ -282,4 +260,4 @@ public class DeathRealmSoulFragmentListener implements Listener {
         collecting.clear();
         startLocations.clear();
     }
-                    }
+}
