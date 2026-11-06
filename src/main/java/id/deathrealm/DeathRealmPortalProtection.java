@@ -72,7 +72,6 @@ public class DeathRealmPortalProtection implements Listener {
             return;
         }
 
-        // Pemain mati tidak boleh menggunakan portal biasa.
         if (plugin.getTimerManager().hasTimer(uuid)) {
             return;
         }
@@ -91,7 +90,6 @@ public class DeathRealmPortalProtection implements Listener {
 
         Location safeDestination = findSafeLocation(destination);
 
-        // Jangan teleport jika tidak ditemukan tempat aman.
         if (safeDestination == null) {
             player.sendMessage(
                     "§cPortal tidak dapat digunakan: lokasi tujuan tidak aman."
@@ -133,13 +131,13 @@ public class DeathRealmPortalProtection implements Listener {
                 continue;
             }
 
-            Location feet = candidate.clone();
-            Location head = candidate.clone();
-            Location ground = candidate.clone().subtract(0, 1, 0);
-
             if (!world.getWorldBorder().isInside(candidate)) {
                 continue;
             }
+
+            Location feet = candidate.clone();
+            Location head = candidate.clone().add(0, 1, 0);
+            Location ground = candidate.clone().subtract(0, 1, 0);
 
             if (!feet.getBlock().isPassable()
                     || !head.getBlock().isPassable()) {
@@ -178,6 +176,8 @@ public class DeathRealmPortalProtection implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        teleportCooldown.remove(event.getPlayer().getUniqueId());
+        teleportCooldown.remove(
+                event.getPlayer().getUniqueId()
+        );
     }
 }
