@@ -49,47 +49,64 @@ public class DeathRealmAltarCommand implements CommandExecutor {
         }
 
         Location location = player.getLocation();
+        boolean inDeathRealm = isDeathRealm(location);
 
         switch (args[0].toLowerCase()) {
 
             case "setpemanggilan":
-                if (!isDeathRealm(location)) {
-                    player.sendMessage("§cAltar harus berada di ALAMKACUNG!");
+                if (inDeathRealm) {
+                    player.sendMessage(
+                            "§cAltar Pemanggilan harus berada di dunia utama!"
+                    );
                     return true;
                 }
 
                 altarManager.setSummoningAltar(location);
-                player.sendMessage("§aLokasi Altar Pemanggilan berhasil disimpan!");
+                player.sendMessage(
+                        "§aLokasi Altar Pemanggilan di dunia utama berhasil disimpan!"
+                );
                 break;
 
             case "setkelahiran":
-                if (!isDeathRealm(location)) {
-                    player.sendMessage("§cAltar harus berada di ALAMKACUNG!");
+                if (!inDeathRealm) {
+                    player.sendMessage(
+                            "§cAltar Kelahiran harus berada di ALAMKACUNG!"
+                    );
                     return true;
                 }
 
                 altarManager.setRebirthAltar(location);
-                player.sendMessage("§aLokasi Altar Kelahiran berhasil disimpan!");
+                player.sendMessage(
+                        "§aLokasi Altar Kelahiran berhasil disimpan!"
+                );
                 break;
 
             case "setportalmasuk":
-                if (isDeathRealm(location)) {
-                    player.sendMessage("§cPortal masuk harus berada di dunia utama!");
+                if (inDeathRealm) {
+                    player.sendMessage(
+                            "§cPortal masuk harus berada di dunia utama!"
+                    );
                     return true;
                 }
 
                 portalManager.setPortalEntry(location);
-                player.sendMessage("§aLokasi portal masuk berhasil disimpan!");
+                player.sendMessage(
+                        "§aLokasi portal masuk berhasil disimpan!"
+                );
                 break;
 
             case "setportalkeluar":
-                if (!isDeathRealm(location)) {
-                    player.sendMessage("§cPortal keluar harus berada di ALAMKACUNG!");
+                if (!inDeathRealm) {
+                    player.sendMessage(
+                            "§cPortal keluar harus berada di ALAMKACUNG!"
+                    );
                     return true;
                 }
 
                 portalManager.setPortalExit(location);
-                player.sendMessage("§aLokasi portal keluar berhasil disimpan!");
+                player.sendMessage(
+                        "§aLokasi portal keluar berhasil disimpan!"
+                );
                 break;
 
             default:
@@ -102,6 +119,7 @@ public class DeathRealmAltarCommand implements CommandExecutor {
 
     private boolean isDeathRealm(Location location) {
         return location.getWorld() != null
-                && location.getWorld().getName().equalsIgnoreCase("DeathRealm");
+                && location.getWorld().getName()
+                .equalsIgnoreCase("DeathRealm");
     }
 }
