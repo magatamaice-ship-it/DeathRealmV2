@@ -136,6 +136,7 @@ public class DeathRealmFriendRevivalManager implements Listener {
                 || pendingInProgress.contains(targetId)
                 || finishingRevival.contains(targetId)
                 || activeRituals.containsKey(targetId)
+                || plugin.getSoulFragmentRitual().isRitualActive(targetId)
                 || !hasRequirements(initiator)
                 || resurrection == null) {
             return false;
