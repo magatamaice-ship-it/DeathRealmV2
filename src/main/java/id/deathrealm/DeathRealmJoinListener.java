@@ -99,6 +99,40 @@ public class DeathRealmJoinListener implements Listener {
                 player.sendMessage(
                         "§5[ALAMKACUNG] §dUjian kebangkitanmu telah terbuka!"
                 );
+
+                Bukkit.getScheduler().runTaskLater(
+                        plugin,
+                        () -> {
+                            if (!player.isOnline()
+                                    || !timerManager.hasTimer(
+                                            player.getUniqueId()
+                                    )
+                                    || !timerManager.isTrialUnlocked(
+                                            player.getUniqueId()
+                                    )) {
+                                return;
+                            }
+
+                            if (plugin.getSoulFragmentManager()
+                                    .isTrialActive(player.getUniqueId())) {
+
+                                plugin.getSoulFragmentDisplay()
+                                        .spawnFragments(
+                                                player.getUniqueId(),
+                                                player.getName()
+                                        );
+
+                                player.sendMessage(
+                                        "§dPencarian Fragmen Jiwa dilanjutkan."
+                                );
+                            } else {
+                                plugin.getSoulFragmentMenu()
+                                        .openMenu(player);
+                            }
+                        },
+                        40L
+                );
+
             } else {
                 bossBar.show(player);
                 entryEffect.play(player);
