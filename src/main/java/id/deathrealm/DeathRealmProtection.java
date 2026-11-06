@@ -9,6 +9,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerToggleFlightEvent;
 import org.bukkit.projectiles.ProjectileSource;
 
 public class DeathRealmProtection implements Listener {
@@ -29,13 +32,49 @@ public class DeathRealmProtection implements Listener {
             return;
         }
 
-        player.setGameMode(GameMode.ADVENTURE);
-        player.setAllowFlight(true);
-        player.setFlying(true);
+        boolean dead = plugin.getTimerManager()
+                .hasTimer(player.getUniqueId());
+
+        if (dead) {
+            player.setGameMode(GameMode.ADVENTURE);
+            player.setAllowFlight(true);
+            player.setFlying(true);
+            player.setFallDistance(0);
+        } else {
+            player.setFlying(false);
+            player.setAllowFlight(false);
+        }
+
         player.setFoodLevel(20);
         player.setSaturation(20);
-        player.setHealth(player.getMaxHealth());
         player.setFallDistance(0);
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            if (player.isOnline()) {
+                preparePlayer(player);
+            }
+        });
+    }
+
+    @EventHandler
+    public void onWorldChange(PlayerChangedWorldEvent event) {
+        preparePlayer(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onFlight(PlayerToggleFlightEvent event) {
+        Player player = event.getPlayer();
+
+        if (isInDeathRealm(player)
+                && !plugin.getTimerManager()
+                .hasTimer(player.getUniqueId())) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler
