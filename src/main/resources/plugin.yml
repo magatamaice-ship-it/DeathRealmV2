@@ -13,7 +13,7 @@ commands:
 
   alamkacung:
     description: Pengaturan sistem ALAMKACUNG
-    usage: /alamkacung <setpemanggilan|setkelahiran|setportalmasuk|setportalkeluar>
+    usage: /alamkacung <setpemanggilan|setkelahiran|setportalmasuk|setportalkeluar|setsyarat|hapus|lihatsyarat>
 
 permissions:
   deathrealm.admin:
