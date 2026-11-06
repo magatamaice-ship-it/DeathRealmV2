@@ -1,23 +1,43 @@
 
 package id.deathrealm;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
-public class DeathRealmFriendRevivalManager {
+public class DeathRealmFriendRevivalManager implements Listener {
+
+    private static final int RITUAL_SECONDS = 180;
 
     private final DeathRealm plugin;
     private final File file;
     private final List<Requirement> requirements = new ArrayList<>();
+    private final Map<UUID, BukkitTask> activeRituals = new HashMap<>();
+    private final Set<UUID> pendingRevival = new HashSet<>();
+
+    private DeathRealmResurrection resurrection;
 
     public DeathRealmFriendRevivalManager(DeathRealm plugin) {
         this.plugin = plugin;
@@ -27,6 +47,10 @@ public class DeathRealmFriendRevivalManager {
         );
 
         load();
+    }
+
+    public void setResurrection(DeathRealmResurrection resurrection) {
+        this.resurrection = resurrection;
     }
 
     public boolean addRequirement(Player player, int amount) {
@@ -51,7 +75,6 @@ public class DeathRealmFriendRevivalManager {
 
         requirements.add(new Requirement(savedItem, amount));
         save();
-
         return true;
     }
 
@@ -62,7 +85,6 @@ public class DeathRealmFriendRevivalManager {
 
         requirements.remove(index - 1);
         save();
-
         return true;
     }
 
@@ -101,6 +123,218 @@ public class DeathRealmFriendRevivalManager {
 
         player.updateInventory();
         return true;
+    }
+
+    public boolean canRevive(UUID targetId) {
+        return targetId != null
+                && plugin.getTimerManager().hasTimer(targetId);
+    }
+
+    public boolean startRitual(Player initiator, UUID targetId) {
+        if (initiator == null || !initiator.isOnline()
+                || targetId == null
+                || targetId.equals(initiator.getUniqueId())
+                || !canRevive(targetId)
+                || activeRituals.containsKey(targetId)
+                || !hasRequirements(initiator)
+                || resurrection == null) {
+            return false;
+        }
+
+        Location altar = plugin.getAltarManager().getSummoningAltar();
+
+        if (altar == null || altar.getWorld() == null) {
+            initiator.sendMessage(
+                    "§cLokasi Altar Pemanggilan belum diatur."
+            );
+            return false;
+        }
+
+        if (!consumeRequirements(initiator)) {
+            return false;
+        }
+
+        initiator.sendMessage(
+                "§6Ritual kebangkitan dimulai. Waktu: 3 menit."
+        );
+
+        Bukkit.getPluginManager().callEvent(
+                new FriendRevivalStartEvent(targetId)
+        );
+
+        final int[] elapsed = {0};
+
+        BukkitTask task = Bukkit.getScheduler().runTaskTimer(
+                plugin,
+                () -> {
+                    if (!canRevive(targetId)) {
+                        cancelRitual(targetId);
+                        initiator.sendMessage(
+                                "§cRitual dibatalkan. Target sudah tidak berstatus mati."
+                        );
+                        return;
+                    }
+
+                    if (altar.getWorld() == null) {
+                        cancelRitual(targetId);
+                        return;
+                    }
+
+                    elapsed[0]++;
+
+                    playRitualEffects(altar, elapsed[0]);
+
+                    if (elapsed[0] % 30 == 0 && initiator.isOnline()) {
+                        int remaining = RITUAL_SECONDS - elapsed[0];
+
+                        initiator.sendMessage(
+                                "§eRitual kebangkitan: §f"
+                                        + remaining + " detik tersisa."
+                        );
+                    }
+
+                    if (elapsed[0] >= RITUAL_SECONDS) {
+                        finishRitual(initiator, targetId);
+                    }
+                },
+                0L,
+                20L
+        );
+
+        activeRituals.put(targetId, task);
+        return true;
+    }
+
+    private void finishRitual(Player initiator, UUID targetId) {
+        BukkitTask task = activeRituals.remove(targetId);
+
+        if (task != null) {
+            task.cancel();
+        }
+
+        if (!canRevive(targetId)) {
+            return;
+        }
+
+        Player target = Bukkit.getPlayer(targetId);
+
+        if (target != null && target.isOnline()) {
+            boolean started = resurrection.resurrect(target);
+
+            if (started) {
+                if (initiator.isOnline()) {
+                    initiator.sendMessage(
+                            "§aRitual selesai! Kebangkitan target dimulai."
+                    );
+                }
+            } else if (initiator.isOnline()) {
+                initiator.sendMessage(
+                        "§cKebangkitan target gagal dimulai."
+                );
+            }
+
+            return;
+        }
+
+        pendingRevival.add(targetId);
+        save();
+
+        if (initiator.isOnline()) {
+            initiator.sendMessage(
+                    "§aRitual berhasil! Jiwa target akan kembali saat ia masuk server."
+            );
+        }
+    }
+
+    private void cancelRitual(UUID targetId) {
+        BukkitTask task = activeRituals.remove(targetId);
+
+        if (task != null) {
+            task.cancel();
+        }
+    }
+
+    private void playRitualEffects(Location altar, int elapsed) {
+        int stage = elapsed / 45;
+
+        Location center = altar.clone().add(0.5, 1.2, 0.5);
+
+        altar.getWorld().spawnParticle(
+                Particle.SOUL,
+                center,
+                4 + stage * 3,
+                0.6,
+                0.5,
+                0.6,
+                0.03
+        );
+
+        if (elapsed % 3 == 0) {
+            altar.getWorld().spawnParticle(
+                    Particle.END_ROD,
+                    center,
+                    2 + stage * 2,
+                    0.8,
+                    0.8,
+                    0.8,
+                    0.02
+            );
+        }
+
+        if (elapsed % 10 == 0) {
+            altar.getWorld().playSound(
+                    center,
+                    Sound.BLOCK_BEACON_AMBIENT,
+                    0.5f + stage * 0.2f,
+                    0.7f + stage * 0.15f
+            );
+        }
+
+        if (elapsed == 150 || elapsed == 180) {
+            altar.getWorld().spawnParticle(
+                    Particle.PORTAL,
+                    center,
+                    80,
+                    1.5,
+                    1.5,
+                    1.5,
+                    0.5
+            );
+
+            altar.getWorld().playSound(
+                    center,
+                    Sound.BLOCK_END_PORTAL_SPAWN,
+                    1.0f,
+                    1.0f
+            );
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onTargetJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        UUID uuid = player.getUniqueId();
+
+        if (!pendingRevival.contains(uuid)) {
+            return;
+        }
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (!player.isOnline()
+                    || !pendingRevival.contains(uuid)
+                    || resurrection == null) {
+                return;
+            }
+
+            if (resurrection.resurrect(player)) {
+                pendingRevival.remove(uuid);
+                save();
+
+                player.sendMessage(
+                        "§aRitual temanmu berhasil. Kebangkitanmu dimulai!"
+                );
+            }
+        });
     }
 
     private int countItem(Player player, ItemStack template) {
@@ -158,15 +392,15 @@ public class DeathRealmFriendRevivalManager {
         for (int i = 0; i < requirements.size(); i++) {
             Requirement requirement = requirements.get(i);
 
-            config.set(
-                    "requirements." + i + ".item",
-                    requirement.getItem()
-            );
+            config.set("requirements." + i + ".item",
+                    requirement.getItem());
 
-            config.set(
-                    "requirements." + i + ".amount",
-                    requirement.getAmount()
-            );
+            config.set("requirements." + i + ".amount",
+                    requirement.getAmount());
+        }
+
+        for (UUID uuid : pendingRevival) {
+            config.set("pending." + uuid, true);
         }
 
         try {
@@ -190,31 +424,49 @@ public class DeathRealmFriendRevivalManager {
         ConfigurationSection section =
                 config.getConfigurationSection("requirements");
 
-        if (section == null) {
-            return;
+        if (section != null) {
+            for (String key : section.getKeys(false)) {
+                ItemStack item = config.getItemStack(
+                        "requirements." + key + ".item"
+                );
+
+                int amount = config.getInt(
+                        "requirements." + key + ".amount"
+                );
+
+                if (item == null || item.getType() == Material.AIR
+                        || amount <= 0) {
+                    continue;
+                }
+
+                item.setAmount(1);
+                requirements.add(new Requirement(item, amount));
+            }
         }
 
-        for (String key : section.getKeys(false)) {
-            ItemStack item = config.getItemStack(
-                    "requirements." + key + ".item"
-            );
+        ConfigurationSection pending =
+                config.getConfigurationSection("pending");
 
-            int amount = config.getInt(
-                    "requirements." + key + ".amount"
-            );
+        if (pending != null) {
+            for (String key : pending.getKeys(false)) {
+                try {
+                    UUID uuid = UUID.fromString(key);
 
-            if (item == null || item.getType() == Material.AIR
-                    || amount <= 0) {
-                continue;
+                    if (pending.getBoolean(key)) {
+                        pendingRevival.add(uuid);
+                    }
+                } catch (IllegalArgumentException exception) {
+                    plugin.getLogger().warning(
+                            "UUID pending revival tidak valid: " + key
+                    );
+                }
             }
-
-            item.setAmount(1);
-            requirements.add(new Requirement(item, amount));
         }
 
         plugin.getLogger().info(
                 "Berhasil memuat " + requirements.size()
-                + " persyaratan ritual kebangkitan."
+                        + " persyaratan dan " + pendingRevival.size()
+                        + " kebangkitan tertunda."
         );
     }
 
@@ -237,4 +489,4 @@ public class DeathRealmFriendRevivalManager {
             return amount;
         }
     }
-  }
+}
