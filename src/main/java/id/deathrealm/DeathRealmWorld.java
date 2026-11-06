@@ -1,9 +1,11 @@
+
 package id.deathrealm;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
+import org.bukkit.WorldBorder;
 
 public class DeathRealmWorld {
 
@@ -19,7 +21,7 @@ public class DeathRealmWorld {
 
         if (existing != null) {
             world = existing;
-            world.setSpawnLocation(0, 91, 0);
+            configureWorld();
             return;
         }
 
@@ -39,11 +41,24 @@ public class DeathRealmWorld {
             return;
         }
 
-        world.setAutoSave(true);
-        world.setSpawnLocation(0, 91, 0);
+        configureWorld();
 
         plugin.getLogger().info(
                 "Dunia DeathRealm berhasil dibuat!"
+        );
+    }
+
+    private void configureWorld() {
+        world.setAutoSave(true);
+        world.setSpawnLocation(0, 91, 0);
+
+        WorldBorder border = world.getWorldBorder();
+
+        border.setCenter(0, 0);
+        border.setSize(220);
+
+        plugin.getLogger().info(
+                "Pengaturan dunia DeathRealm berhasil diterapkan."
         );
     }
 
