@@ -1,3 +1,4 @@
+
 package id.deathrealm;
 
 import org.bukkit.Bukkit;
@@ -55,7 +56,15 @@ public class DeathRealmDeathListener implements Listener {
             return;
         }
 
+        // Hapus tampilan fragmen lama terlebih dahulu.
+        plugin.getSoulFragmentDisplay().removeFragments(uuid);
+
+        // Hapus lokasi dan progres pencarian fragmen.
+        plugin.getSoulFragmentManager().resetTrial(uuid);
+
+        // Mulai siklus kematian baru selama 25 menit.
         timerManager.startTimer(uuid);
+
         pendingPlayers.add(uuid);
 
         visibility.refreshAll();
