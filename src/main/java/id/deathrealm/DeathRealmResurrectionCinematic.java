@@ -17,6 +17,11 @@ public class DeathRealmResurrectionCinematic {
     }
 
     public void play(Player player, Runnable onComplete) {
+        if (player == null || !player.isOnline()) {
+            onComplete.run();
+            return;
+        }
+
         boolean previousInvulnerable = player.isInvulnerable();
         float previousWalkSpeed = player.getWalkSpeed();
         float previousFlySpeed = player.getFlySpeed();
@@ -39,9 +44,7 @@ public class DeathRealmResurrectionCinematic {
             private boolean completed = false;
 
             private void finish() {
-                if (completed) {
-                    return;
-                }
+                if (completed) return;
 
                 completed = true;
 
