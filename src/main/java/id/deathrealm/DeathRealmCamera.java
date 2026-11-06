@@ -16,7 +16,6 @@ public class DeathRealmCamera {
 
     public void play(Player player, Runnable onComplete) {
         Location start = player.getLocation().clone();
-        Location target = start.clone().add(0, 5, 0);
 
         float originalWalkSpeed = player.getWalkSpeed();
         float originalFlySpeed = player.getFlySpeed();
@@ -28,27 +27,41 @@ public class DeathRealmCamera {
 
         new BukkitRunnable() {
             private int tick = 0;
+            private boolean completed = false;
+
+            private void finish() {
+                if (completed) {
+                    return;
+                }
+
+                completed = true;
+
+                if (player.isOnline()) {
+                    player.teleport(start);
+                    player.setWalkSpeed(originalWalkSpeed);
+                    player.setFlySpeed(originalFlySpeed);
+                    player.setInvulnerable(originalInvulnerable);
+                }
+
+                onComplete.run();
+            }
 
             @Override
             public void run() {
                 if (!player.isOnline()) {
                     cancel();
+                    finish();
                     return;
                 }
 
                 if (tick >= 40) {
                     cancel();
-
-                    player.teleport(start);
-                    player.setWalkSpeed(originalWalkSpeed);
-                    player.setFlySpeed(originalFlySpeed);
-                    player.setInvulnerable(originalInvulnerable);
-
-                    onComplete.run();
+                    finish();
                     return;
                 }
 
                 double progress = tick / 40.0;
+
                 Location cameraLocation = start.clone().add(
                         0,
                         5 * progress,
