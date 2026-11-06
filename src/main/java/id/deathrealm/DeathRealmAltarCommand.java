@@ -5,6 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -91,7 +92,19 @@ public class DeathRealmAltarCommand implements CommandExecutor {
                     return true;
                 }
 
-                altarManager.setSummoningAltar(player.getLocation());
+                Block summoningBlock = player.getTargetBlockExact(10);
+
+                if (summoningBlock == null) {
+                    player.sendMessage(
+                            "§cArahkan pandangan ke blok altar terlebih dahulu!"
+                    );
+                    return true;
+                }
+
+                altarManager.setSummoningAltar(
+                        summoningBlock.getLocation()
+                );
+
                 player.sendMessage(
                         "§aLokasi Altar Pemanggilan berhasil disimpan!"
                 );
@@ -106,9 +119,25 @@ public class DeathRealmAltarCommand implements CommandExecutor {
                     return true;
                 }
 
-                altarManager.setRebirthAltar(player.getLocation());
+                Block rebirthBlock = player.getTargetBlockExact(10);
+
+                if (rebirthBlock == null) {
+                    player.sendMessage(
+                            "§cArahkan pandangan ke blok altar terlebih dahulu!"
+                    );
+                    return true;
+                }
+
+                altarManager.setRebirthAltar(
+                        rebirthBlock.getLocation()
+                );
+
                 player.sendMessage(
                         "§aLokasi Altar Kelahiran berhasil disimpan!"
+                );
+                player.sendMessage(
+                        "§7Blok altar: §f"
+                                + rebirthBlock.getType().name()
                 );
                 break;
 
