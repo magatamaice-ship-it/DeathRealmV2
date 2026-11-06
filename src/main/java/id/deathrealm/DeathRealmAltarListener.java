@@ -75,11 +75,31 @@ public class DeathRealmAltarListener implements Listener {
                 return;
             }
 
+            if (!plugin.getTimerManager().isTrialUnlocked(
+                    player.getUniqueId()
+            )) {
+                player.sendMessage(
+                        "§cWaktu menunggumu belum selesai."
+                );
+                return;
+            }
+
+            if (!plugin.getSoulFragmentManager().hasAllFragments(
+                    player.getUniqueId()
+            )) {
+                int collected = plugin.getSoulFragmentManager()
+                        .getCollectedCount(player.getUniqueId());
+
+                player.sendMessage(
+                        "§cFragmen Jiwa belum lengkap! §7("
+                                + collected + "/3)"
+                );
+                return;
+            }
+
             player.sendMessage("§5§lALTAR KELAHIRAN");
 
-            player.sendMessage(
-                    "§7Periksa tiga Fragmen Jiwa untuk ritual kebangkitan."
-            );
+            plugin.getSoulFragmentRitual().startRitual(player);
         }
     }
 }
