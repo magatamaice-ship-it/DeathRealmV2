@@ -48,6 +48,15 @@ public class DeathRealmAltarListener implements Listener {
         if (altarManager.isSummoningAltar(location)) {
             event.setCancelled(true);
 
+            if (plugin.getTimerManager().hasTimer(
+                    player.getUniqueId()
+            )) {
+                player.sendMessage(
+                        "§cPemain yang sedang mati tidak dapat memulai ritual."
+                );
+                return;
+            }
+
             player.sendMessage("§6§lALTAR PEMANGGILAN");
             revivalMenu.openMenu(player, 0);
 
@@ -56,6 +65,15 @@ public class DeathRealmAltarListener implements Listener {
 
         if (altarManager.isRebirthAltar(location)) {
             event.setCancelled(true);
+
+            if (!plugin.getTimerManager().hasTimer(
+                    player.getUniqueId()
+            )) {
+                player.sendMessage(
+                        "§cAltar ini hanya dapat digunakan oleh pemain yang sedang mati."
+                );
+                return;
+            }
 
             player.sendMessage("§5§lALTAR KELAHIRAN");
 
