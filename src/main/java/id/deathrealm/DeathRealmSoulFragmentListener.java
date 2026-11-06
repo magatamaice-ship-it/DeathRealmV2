@@ -25,6 +25,8 @@ import java.util.UUID;
 
 public class DeathRealmSoulFragmentListener implements Listener {
 
+    private static final double MOVEMENT_TOLERANCE_SQUARED = 0.04;
+
     private final DeathRealm plugin;
     private final DeathRealmSoulFragmentManager fragmentManager;
     private final DeathRealmSoulFragmentDisplay fragmentDisplay;
@@ -43,6 +45,7 @@ public class DeathRealmSoulFragmentListener implements Listener {
         this.plugin = plugin;
         this.fragmentManager = fragmentManager;
         this.fragmentDisplay = fragmentDisplay;
+
         ownerKey = new NamespacedKey(plugin, "soul_owner");
         fragmentKey = new NamespacedKey(plugin, "soul_fragment");
     }
@@ -106,7 +109,7 @@ public class DeathRealmSoulFragmentListener implements Listener {
 
         player.sendTitle(
                 "§dMENGUMPULKAN FRAGMEN",
-                "§7Jangan bergerak selama 3 detik",
+                "§7Jangan berpindah posisi selama 3 detik",
                 0, 65, 5
         );
 
@@ -135,9 +138,7 @@ public class DeathRealmSoulFragmentListener implements Listener {
                         Location current = player.getLocation();
                         Location start = startLocations.get(uuid);
 
-                        if (start == null
-                                || !current.getWorld().equals(start.getWorld())
-                                || current.distanceSquared(start) > 0.04) {
+                        if (hasMovedTooFar(start, current)) {
                             cancelCollection(uuid, true);
                             return;
                         }
@@ -155,7 +156,9 @@ public class DeathRealmSoulFragmentListener implements Listener {
                         if (ticks >= 60) {
                             BukkitTask currentTask = collecting.remove(uuid);
 
-                            if (currentTask != null) currentTask.cancel();
+                            if (currentTask != null) {
+                                currentTask.cancel();
+                            }
 
                             startLocations.remove(uuid);
 
@@ -198,6 +201,18 @@ public class DeathRealmSoulFragmentListener implements Listener {
         collecting.put(uuid, task);
     }
 
+    private boolean hasMovedTooFar(Location start, Location current) {
+        if (start == null
+                || current.getWorld() == null
+                || start.getWorld() == null
+                || !current.getWorld().equals(start.getWorld())) {
+            return true;
+        }
+
+        return current.distanceSquared(start)
+                > MOVEMENT_TOLERANCE_SQUARED;
+    }
+
     @EventHandler
     public void onMove(PlayerMoveEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
@@ -209,9 +224,16 @@ public class DeathRealmSoulFragmentListener implements Listener {
 
         if (to == null) return;
 
-        if (from.getBlockX() != to.getBlockX()
-                || from.getBlockY() != to.getBlockY()
-                || from.getBlockZ() != to.getBlockZ()) {
+        // Abaikan perubahan arah pandang.
+        if (from.getX() == to.getX()
+                && from.getY() == to.getY()
+                && from.getZ() == to.getZ()) {
+            return;
+        }
+
+        Location start = startLocations.get(uuid);
+
+        if (hasMovedTooFar(start, to)) {
             cancelCollection(uuid, true);
         }
     }
@@ -239,7 +261,9 @@ public class DeathRealmSoulFragmentListener implements Listener {
     private void cancelCollection(UUID uuid, boolean notify) {
         BukkitTask task = collecting.remove(uuid);
 
-        if (task != null) task.cancel();
+        if (task != null) {
+            task.cancel();
+        }
 
         startLocations.remove(uuid);
 
@@ -247,7 +271,7 @@ public class DeathRealmSoulFragmentListener implements Listener {
 
         if (notify && player != null && player.isOnline()) {
             player.sendMessage(
-                    "§cPengambilan Fragmen Jiwa dibatalkan karena kamu bergerak atau berpindah."
+                    "§cPengambilan Fragmen Jiwa dibatalkan karena kamu berpindah posisi."
             );
         }
     }
