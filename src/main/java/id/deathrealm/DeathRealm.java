@@ -26,6 +26,9 @@ public final class DeathRealm extends JavaPlugin {
     private DeathRealmPortalManager portalManager;
     private DeathRealmFriendRevivalManager friendRevivalManager;
 
+    private DeathRealmSoulFragmentManager soulFragmentManager;
+    private DeathRealmSoulFragmentMenu soulFragmentMenu;
+
     @Override
     public void onEnable() {
         instance = this;
@@ -33,6 +36,7 @@ public final class DeathRealm extends JavaPlugin {
         getLogger().info("Memulai DeathRealmV2...");
 
         timerManager = new DeathTimerManager(this);
+
         friendRevivalManager =
                 new DeathRealmFriendRevivalManager(this);
 
@@ -71,8 +75,16 @@ public final class DeathRealm extends JavaPlugin {
                 visibility
         );
 
-        // Hubungkan sistem ritual dengan sistem kebangkitan.
         friendRevivalManager.setResurrection(resurrection);
+
+        soulFragmentManager =
+                new DeathRealmSoulFragmentManager(this);
+
+        soulFragmentMenu =
+                new DeathRealmSoulFragmentMenu(
+                        this,
+                        soulFragmentManager
+                );
 
         timerTask = new DeathRealmTimerTask(
                 this,
@@ -87,6 +99,10 @@ public final class DeathRealm extends JavaPlugin {
 
         Bukkit.getPluginManager().registerEvents(protection, this);
         Bukkit.getPluginManager().registerEvents(visibility, this);
+
+        Bukkit.getPluginManager().registerEvents(
+                soulFragmentMenu, this
+        );
 
         Bukkit.getPluginManager().registerEvents(
                 new DeathRealmVerticalBoundary(this), this
@@ -120,7 +136,6 @@ public final class DeathRealm extends JavaPlugin {
                 ), this
         );
 
-        // Listener untuk kebangkitan pemain yang sebelumnya offline.
         Bukkit.getPluginManager().registerEvents(
                 friendRevivalManager, this
         );
@@ -172,6 +187,7 @@ public final class DeathRealm extends JavaPlugin {
         if (atmosphere != null) atmosphere.stop();
         if (warningTask != null) warningTask.stop();
         if (timerManager != null) timerManager.saveTimers();
+        if (soulFragmentManager != null) soulFragmentManager.save();
 
         instance = null;
 
@@ -204,5 +220,13 @@ public final class DeathRealm extends JavaPlugin {
 
     public DeathRealmFriendRevivalManager getFriendRevivalManager() {
         return friendRevivalManager;
+    }
+
+    public DeathRealmSoulFragmentManager getSoulFragmentManager() {
+        return soulFragmentManager;
+    }
+
+    public DeathRealmSoulFragmentMenu getSoulFragmentMenu() {
+        return soulFragmentMenu;
     }
 }
