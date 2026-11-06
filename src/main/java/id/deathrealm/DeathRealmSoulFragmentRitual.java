@@ -17,7 +17,9 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public class DeathRealmSoulFragmentRitual implements Listener {
@@ -28,8 +30,8 @@ public class DeathRealmSoulFragmentRitual implements Listener {
     private final DeathRealmResurrection resurrection;
     private final DeathRealmSoulFragmentManager fragmentManager;
 
-    private final Map<UUID, RitualData> activeRituals =
-            new HashMap<>();
+    private final Map<UUID, RitualData> activeRituals = new HashMap<>();
+    private final Set<UUID> finishingRituals = new HashSet<>();
 
     public DeathRealmSoulFragmentRitual(
             DeathRealm plugin,
@@ -49,7 +51,8 @@ public class DeathRealmSoulFragmentRitual implements Listener {
 
         UUID uuid = player.getUniqueId();
 
-        if (!plugin.getTimerManager().hasTimer(uuid)) {
+        if (!plugin.getTimerManager().hasTimer(uuid)
+                || !plugin.getTimerManager().isTrialUnlocked(uuid)) {
             return false;
         }
 
@@ -60,9 +63,14 @@ public class DeathRealmSoulFragmentRitual implements Listener {
             return false;
         }
 
-        if (activeRituals.containsKey(uuid)) {
+        if (activeRituals.containsKey(uuid)
+                || finishingRituals.contains(uuid)
+                || plugin.getFriendRevivalManager()
+                .isRitualActive(uuid)
+                || plugin.getFriendRevivalManager()
+                .isFinishingRevival(uuid)) {
             player.sendMessage(
-                    "§cRitual kebangkitanmu sedang berlangsung!"
+                    "§cSudah ada proses kebangkitan yang berlangsung!"
             );
             return false;
         }
@@ -198,6 +206,10 @@ public class DeathRealmSoulFragmentRitual implements Listener {
             return;
         }
 
+        if (!finishingRituals.add(uuid)) {
+            return;
+        }
+
         player.playSound(
                 player.getLocation(),
                 Sound.UI_TOAST_CHALLENGE_COMPLETE,
@@ -224,6 +236,8 @@ public class DeathRealmSoulFragmentRitual implements Listener {
         );
 
         boolean started = resurrection.resurrect(player, success -> {
+            finishingRituals.remove(uuid);
+
             if (!success) {
                 if (player.isOnline()) {
                     player.sendMessage(
@@ -233,12 +247,12 @@ public class DeathRealmSoulFragmentRitual implements Listener {
                 return;
             }
 
-            // Batalkan ritual teman hanya setelah teleport berhasil.
             plugin.getFriendRevivalManager()
                     .cancelRitualForTarget(uuid);
         });
 
         if (!started) {
+            finishingRituals.remove(uuid);
             player.sendMessage(
                     "§cKebangkitan gagal dimulai. Periksa lokasi tujuan."
             );
@@ -275,7 +289,8 @@ public class DeathRealmSoulFragmentRitual implements Listener {
     }
 
     public boolean isRitualActive(UUID uuid) {
-        return activeRituals.containsKey(uuid);
+        return activeRituals.containsKey(uuid)
+                || finishingRituals.contains(uuid);
     }
 
     private void cleanup(RitualData data) {
@@ -307,18 +322,24 @@ public class DeathRealmSoulFragmentRitual implements Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
+        UUID uuid = event.getPlayer().getUniqueId();
+
         cancelRitual(
-                event.getPlayer().getUniqueId(),
+                uuid,
                 "§cRitual dibatalkan karena kamu keluar dari server."
         );
+        finishingRituals.remove(uuid);
     }
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
+        UUID uuid = event.getEntity().getUniqueId();
+
         cancelRitual(
-                event.getEntity().getUniqueId(),
+                uuid,
                 "§cRitual dibatalkan karena kamu mati."
         );
+        finishingRituals.remove(uuid);
     }
 
     public void stop() {
@@ -328,6 +349,8 @@ public class DeathRealmSoulFragmentRitual implements Listener {
                     "§cRitual dihentikan karena server dimatikan."
             );
         }
+
+        finishingRituals.clear();
     }
 
     private static class RitualData {
