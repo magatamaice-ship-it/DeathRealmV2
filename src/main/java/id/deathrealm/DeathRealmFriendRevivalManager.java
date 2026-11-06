@@ -679,5 +679,79 @@ public class DeathRealmFriendRevivalManager implements Listener {
                     if (initiatorValue == null) {
                         continue;
                     }
+                                        UUID initiatorId =
+                            UUID.fromString(initiatorValue);
 
-      
+                    List<ItemStack> items = new ArrayList<>();
+
+                    ConfigurationSection itemSection =
+                            refunds.getConfigurationSection(
+                                    targetKey + ".items"
+                            );
+
+                    if (itemSection != null) {
+                        for (String itemKey :
+                                itemSection.getKeys(false)) {
+
+                            ItemStack refundItem =
+                                    refunds.getItemStack(
+                                            targetKey + ".items." + itemKey
+                                    );
+
+                            if (refundItem != null
+                                    && refundItem.getType() != Material.AIR) {
+                                items.add(refundItem);
+                            }
+                        }
+                    }
+
+                    if (!items.isEmpty()) {
+                        pendingRefunds.put(
+                                targetId,
+                                new RefundData(initiatorId, items)
+                        );
+                    }
+
+                } catch (IllegalArgumentException exception) {
+                    plugin.getLogger().warning(
+                            "Data refund tidak valid untuk target: "
+                                    + targetKey
+                    );
+                }
+            }
+        }
+    }
+
+    public void stop() {
+        for (BukkitTask task : activeRituals.values()) {
+            if (task != null) {
+                task.cancel();
+            }
+        }
+
+        activeRituals.clear();
+
+        // Item yang sudah dikonsumsi tetap tersimpan sebagai refund.
+        save();
+    }
+
+    private static class RefundData {
+
+        private final UUID initiatorId;
+        private final List<ItemStack> items;
+
+        private RefundData(
+                UUID initiatorId,
+                List<ItemStack> items
+        ) {
+            this.initiatorId = initiatorId;
+            this.items = new ArrayList<>();
+
+            for (ItemStack item : items) {
+                if (item != null && item.getType() != Material.AIR) {
+                    this.items.add(item.clone());
+                }
+            }
+        }
+    }
+}
