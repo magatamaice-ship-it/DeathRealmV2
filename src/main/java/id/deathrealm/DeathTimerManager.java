@@ -30,20 +30,13 @@ public class DeathTimerManager {
     public DeathTimerManager(DeathRealm plugin) {
         this.plugin = plugin;
         this.file = new File(plugin.getDataFolder(), "timers.yml");
-
         loadTimers();
     }
 
     public void startTimer(UUID playerId) {
-        // Setiap kematian memulai siklus baru.
-        timers.put(
-                playerId,
-                System.currentTimeMillis() + DEATH_TIME
-        );
-
+        timers.put(playerId, System.currentTimeMillis() + DEATH_TIME);
         unlockedTrials.remove(playerId);
         fragments.remove(playerId);
-
         saveTimers();
     }
 
@@ -58,20 +51,15 @@ public class DeathTimerManager {
             return 0L;
         }
 
-        return Math.max(
-                0L,
-                endTime - System.currentTimeMillis()
-        );
+        return Math.max(0L, endTime - System.currentTimeMillis());
     }
 
     public boolean isExpired(UUID playerId) {
-        return hasTimer(playerId)
-                && getRemainingTime(playerId) <= 0L;
+        return hasTimer(playerId) && getRemainingTime(playerId) <= 0L;
     }
 
     public void unlockTrial(UUID playerId) {
-        if (!hasTimer(playerId)
-                || !isExpired(playerId)) {
+        if (!hasTimer(playerId) || !isExpired(playerId)) {
             return;
         }
 
@@ -105,24 +93,18 @@ public class DeathTimerManager {
     }
 
     public boolean hasFragment(UUID playerId, String fragment) {
-        return fragments.getOrDefault(
-                playerId,
-                new HashSet<>()
-        ).contains(fragment);
+        return fragments.getOrDefault(playerId, new HashSet<>())
+                .contains(fragment);
     }
 
     public int getFragmentCount(UUID playerId) {
-        return fragments.getOrDefault(
-                playerId,
-                new HashSet<>()
-        ).size();
+        return fragments.getOrDefault(playerId, new HashSet<>()).size();
     }
 
     public void resetCycle(UUID playerId) {
         timers.remove(playerId);
         unlockedTrials.remove(playerId);
         fragments.remove(playerId);
-
         saveTimers();
     }
 
@@ -142,20 +124,20 @@ public class DeathTimerManager {
         YamlConfiguration config = new YamlConfiguration();
 
         for (Map.Entry<UUID, Long> entry : timers.entrySet()) {
-            config.set(
-                    "timers." + entry.getKey(),
-                    entry.getValue()
-            );
+            config.set("timers." + entry.getKey(), entry.getValue());
         }
 
         for (UUID uuid : unlockedTrials) {
-            config.set(
-                    "trials." + uuid + ".unlocked",
-                    true
-            );
+            if (timers.containsKey(uuid)) {
+                config.set("trials." + uuid + ".unlocked", true);
+            }
         }
 
         for (Map.Entry<UUID, Set<String>> entry : fragments.entrySet()) {
+            if (!timers.containsKey(entry.getKey())) {
+                continue;
+            }
+
             for (String fragment : entry.getValue()) {
                 config.set(
                         "trials." + entry.getKey()
@@ -170,7 +152,7 @@ public class DeathTimerManager {
         } catch (IOException exception) {
             plugin.getLogger().severe(
                     "Gagal menyimpan timers.yml: "
-                    + exception.getMessage()
+                            + exception.getMessage()
             );
         }
     }
@@ -191,7 +173,6 @@ public class DeathTimerManager {
         YamlConfiguration config =
                 YamlConfiguration.loadConfiguration(file);
 
-        // Memuat format baru.
         ConfigurationSection timerSection =
                 config.getConfigurationSection("timers");
 
@@ -212,7 +193,7 @@ public class DeathTimerManager {
             }
         }
 
-        // Kompatibilitas dengan timers.yml format lama.
+        // Kompatibilitas dengan format lama.
         for (String key : config.getKeys(false)) {
             if (key.equals("timers") || key.equals("trials")) {
                 continue;
@@ -226,11 +207,10 @@ public class DeathTimerManager {
                     timers.putIfAbsent(uuid, endTime);
                 }
             } catch (IllegalArgumentException ignored) {
-                // Abaikan key yang bukan UUID.
+                // Bukan UUID.
             }
         }
 
-        // Memuat status ujian dan fragmen.
         ConfigurationSection trialSection =
                 config.getConfigurationSection("trials");
 
@@ -238,6 +218,11 @@ public class DeathTimerManager {
             for (String key : trialSection.getKeys(false)) {
                 try {
                     UUID uuid = UUID.fromString(key);
+
+                    // Abaikan data ujian tanpa timer.
+                    if (!timers.containsKey(uuid)) {
+                        continue;
+                    }
 
                     if (trialSection.getBoolean(
                             key + ".unlocked", false)) {
@@ -248,7 +233,6 @@ public class DeathTimerManager {
 
                     for (String fragment :
                             new String[]{ANCIENT, CURSED, LAST}) {
-
                         if (trialSection.getBoolean(
                                 key + ".fragments." + fragment,
                                 false)) {
@@ -270,7 +254,7 @@ public class DeathTimerManager {
 
         plugin.getLogger().info(
                 "Berhasil memuat " + timers.size()
-                + " timer kematian."
+                        + " timer kematian."
         );
     }
 
