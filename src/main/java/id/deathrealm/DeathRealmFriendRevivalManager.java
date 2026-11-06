@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,7 +40,6 @@ public class DeathRealmFriendRevivalManager implements Listener {
     private final Set<UUID> pendingInProgress = new HashSet<>();
     private final Set<UUID> finishingRevival = new HashSet<>();
 
-    // Data pengembalian item disimpan berdasarkan UUID target ritual.
     private final Map<UUID, RefundData> pendingRefunds = new HashMap<>();
 
     private DeathRealmResurrection resurrection;
@@ -70,7 +68,9 @@ public class DeathRealmFriendRevivalManager implements Listener {
         savedItem.setAmount(1);
 
         for (Requirement requirement : requirements) {
-            if (requirement.getItem().isSimilar(savedItem)) return false;
+            if (requirement.getItem().isSimilar(savedItem)) {
+                return false;
+            }
         }
 
         requirements.add(new Requirement(savedItem, amount));
@@ -165,16 +165,15 @@ public class DeathRealmFriendRevivalManager implements Listener {
             return false;
         }
 
-        // Simpan salinan persyaratan sebelum item dikonsumsi.
         List<ItemStack> refundItems = createRefundItems();
 
         if (!consumeRequirements(initiator)) return false;
 
-        // Catat pengembalian agar tetap ada setelah server restart.
         pendingRefunds.put(
                 targetId,
                 new RefundData(initiator.getUniqueId(), refundItems)
         );
+
         save();
 
         initiator.sendMessage(
@@ -255,11 +254,18 @@ public class DeathRealmFriendRevivalManager implements Listener {
     private void finishRitual(Player initiator, UUID targetId) {
         BukkitTask task = activeRituals.remove(targetId);
 
-        if (task != null) task.cancel();
+        if (task != null) {
+            task.cancel();
+        }
 
-        if (!canRevive(targetId)
-                || !finishingRevival.add(targetId)) {
+        if (!canRevive(targetId)) {
             refundForTarget(targetId);
+            return;
+        }
+
+        // Jangan mengembalikan item jika proses penyelesaian
+        // milik ritual lain sudah berjalan.
+        if (!finishingRevival.add(targetId)) {
             return;
         }
 
@@ -280,7 +286,6 @@ public class DeathRealmFriendRevivalManager implements Listener {
                     return;
                 }
 
-                // Ritual berhasil, item tetap dikonsumsi.
                 pendingRefunds.remove(targetId);
                 save();
 
@@ -299,12 +304,9 @@ public class DeathRealmFriendRevivalManager implements Listener {
         cleanupOfflineTarget(targetId);
 
         pendingRevival.add(targetId);
-
-        // Kebangkitan offline berhasil dijadwalkan.
-        // Persyaratan tetap dianggap terpakai.
         pendingRefunds.remove(targetId);
-
         finishingRevival.remove(targetId);
+
         save();
 
         if (initiator.isOnline()) {
@@ -322,9 +324,17 @@ public class DeathRealmFriendRevivalManager implements Listener {
     public void cancelRitualForTarget(UUID targetId) {
         if (targetId == null) return;
 
+        // Proses yang sudah masuk tahap penyelesaian tidak dibatalkan
+        // oleh pembatalan ritual biasa.
+        if (finishingRevival.contains(targetId)) {
+            return;
+        }
+
         BukkitTask task = activeRituals.remove(targetId);
 
-        if (task != null) task.cancel();
+        if (task != null) {
+            task.cancel();
+        }
 
         refundForTarget(targetId);
     }
@@ -342,7 +352,6 @@ public class DeathRealmFriendRevivalManager implements Listener {
 
         Player initiator = Bukkit.getPlayer(refund.initiatorId);
 
-        // Jika penginisiasi offline, simpan sampai ia masuk kembali.
         if (initiator == null || !initiator.isOnline()) {
             save();
             return;
@@ -433,8 +442,6 @@ public class DeathRealmFriendRevivalManager implements Listener {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
 
-        // Kembalikan item milik pemain yang memulai ritual
-        // dan belum menerima pengembalian karena offline.
         refundForInitiator(uuid);
 
         if (!pendingRevival.contains(uuid)
@@ -526,14 +533,18 @@ public class DeathRealmFriendRevivalManager implements Listener {
     ) {
         int remaining = amount;
 
+        ItemStack[] contents =
+                player.getInventory().getStorageContents();
+
         for (int slot = 0;
-             slot < player.getInventory().getStorageContents().length
-                     && remaining > 0;
+             slot < contents.length && remaining > 0;
              slot++) {
 
-            ItemStack item = player.getInventory().getItem(slot);
+            ItemStack item = contents[slot];
 
-            if (item == null || !item.isSimilar(template)) continue;
+            if (item == null || !item.isSimilar(template)) {
+                continue;
+            }
 
             int taken = Math.min(remaining, item.getAmount());
 
@@ -663,4 +674,10 @@ public class DeathRealmFriendRevivalManager implements Listener {
                     String initiatorValue =
                             refunds.getString(
                                     targetKey + ".initiator"
-                      
+                            );
+
+                    if (initiatorValue == null) {
+                        continue;
+                    }
+
+      
