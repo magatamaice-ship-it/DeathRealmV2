@@ -3,6 +3,7 @@ package id.deathrealm;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class DeathRealm extends JavaPlugin {
@@ -183,6 +184,27 @@ public final class DeathRealm extends JavaPlugin {
         coordinateDisplay.start();
         atmosphere.start();
         warningTask.start();
+
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            for (java.util.UUID owner :
+                    soulFragmentManager.getActiveTrialOwners()) {
+
+                Player onlinePlayer = Bukkit.getPlayer(owner);
+
+                String ownerName = onlinePlayer != null
+                        ? onlinePlayer.getName()
+                        : Bukkit.getOfflinePlayer(owner).getName();
+
+                if (ownerName == null) {
+                    ownerName = owner.toString();
+                }
+
+                soulFragmentDisplay.spawnFragments(
+                        owner,
+                        ownerName
+                );
+            }
+        }, 20L);
 
         if (getCommand("lahirkankembali") != null) {
             getCommand("lahirkankembali").setExecutor(
