@@ -1,3 +1,4 @@
+
 package id.deathrealm;
 
 import net.kyori.adventure.text.Component;
@@ -45,6 +46,12 @@ public class DeathRealmCoordinateDisplay {
 
             List<String> coordinates = new ArrayList<>();
 
+            // Koordinat hanya ditampilkan kepada pemain mati.
+            if (!viewerDead) {
+                viewer.sendActionBar(Component.empty());
+                continue;
+            }
+
             for (Player target : Bukkit.getOnlinePlayers()) {
 
                 if (viewer.equals(target)) {
@@ -55,7 +62,8 @@ public class DeathRealmCoordinateDisplay {
                         target.getUniqueId()
                 );
 
-                if (viewerDead != targetDead) {
+                // Jangan tampilkan koordinat pemain hidup.
+                if (!targetDead) {
                     continue;
                 }
 
