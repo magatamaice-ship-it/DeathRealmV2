@@ -27,29 +27,31 @@ public class DeathRealmRevivalMenu implements Listener {
 
     private final DeathRealm plugin;
     private final DeathTimerManager timerManager;
+    private final DeathRealmFriendRevivalManager revivalManager;
 
     public DeathRealmRevivalMenu(DeathRealm plugin) {
         this.plugin = plugin;
         this.timerManager = plugin.getTimerManager();
+        this.revivalManager = plugin.getFriendRevivalManager();
     }
 
     public void openMenu(Player player, int page) {
         List<OfflinePlayer> deadPlayers = new ArrayList<>();
 
         for (OfflinePlayer offlinePlayer : Bukkit.getOfflinePlayers()) {
-            if (timerManager.hasTimer(offlinePlayer.getUniqueId())) {
+            if (timerManager.hasTimer(offlinePlayer.getUniqueId())
+                    && !offlinePlayer.getUniqueId()
+                    .equals(player.getUniqueId())) {
                 deadPlayers.add(offlinePlayer);
             }
         }
 
         deadPlayers.sort((first, second) -> {
             String firstName = first.getName() == null
-                    ? ""
-                    : first.getName();
+                    ? "" : first.getName();
 
             String secondName = second.getName() == null
-                    ? ""
-                    : second.getName();
+                    ? "" : second.getName();
 
             return firstName.compareToIgnoreCase(secondName);
         });
@@ -65,7 +67,7 @@ public class DeathRealmRevivalMenu implements Listener {
             page = 0;
         }
 
-        MenuHolder holder = new MenuHolder(page);
+        MenuHolder holder = new MenuHolder(page, false, null);
 
         Inventory inventory = Bukkit.createInventory(
                 holder,
@@ -97,15 +99,10 @@ public class DeathRealmRevivalMenu implements Listener {
                     ? "Pemain tidak dikenal"
                     : target.getName();
 
-            meta.displayName(
-                    Component.text("§e" + name)
-            );
-
+            meta.displayName(Component.text("§e" + name));
             meta.lore(List.of(
                     Component.text("§7Status: §cMati"),
-                    Component.text(
-                            "§aKlik untuk memilih pemain ini"
-                    )
+                    Component.text("§aKlik untuk memilih pemain ini")
             ));
 
             head.setItemMeta(meta);
@@ -130,19 +127,14 @@ public class DeathRealmRevivalMenu implements Listener {
                     45,
                     createItem(
                             Material.ARROW,
-                            "§eHalaman sebelumnya",
-                            "§7Klik untuk kembali."
+                            "§eHalaman sebelumnya"
                     )
             );
         }
 
         inventory.setItem(
                 49,
-                createItem(
-                        Material.BARRIER,
-                        "§cTutup",
-                        "§7Tutup menu."
-                )
+                createItem(Material.BARRIER, "§cTutup menu")
         );
 
         if (page < totalPages - 1) {
@@ -150,8 +142,7 @@ public class DeathRealmRevivalMenu implements Listener {
                     53,
                     createItem(
                             Material.ARROW,
-                            "§eHalaman berikutnya",
-                            "§7Klik untuk melanjutkan."
+                            "§eHalaman berikutnya"
                     )
             );
         }
@@ -166,6 +157,85 @@ public class DeathRealmRevivalMenu implements Listener {
                         "§7Pemain mati: §f" + deadPlayers.size()
                 )
         );
+
+        player.openInventory(inventory);
+    }
+
+    private void openConfirmation(Player player, UUID targetId) {
+        if (!revivalManager.canRevive(targetId)) {
+            player.sendMessage(
+                    "§cPemain tersebut sudah tidak berstatus mati."
+            );
+            openMenu(player, 0);
+            return;
+        }
+
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetId);
+
+        String name = target.getName() == null
+                ? "Pemain tidak dikenal"
+                : target.getName();
+
+        MenuHolder holder = new MenuHolder(0, true, targetId);
+
+        Inventory inventory = Bukkit.createInventory(
+                holder,
+                27,
+                Component.text("Konfirmasi Kebangkitan")
+        );
+
+        holder.setInventory(inventory);
+
+        ItemStack head = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta skullMeta = (SkullMeta) head.getItemMeta();
+
+        if (skullMeta != null) {
+            skullMeta.setOwningPlayer(target);
+            skullMeta.displayName(Component.text("§e" + name));
+            head.setItemMeta(skullMeta);
+        }
+
+        inventory.setItem(4, head);
+
+        inventory.setItem(
+                11,
+                createItem(
+                        Material.LIME_CONCRETE,
+                        "§aKONFIRMASI RITUAL",
+                        "§7Mulai ritual kebangkitan.",
+                        "§7Durasi: §e3 menit",
+                        "§7Persyaratan item akan dikonsumsi."
+                )
+        );
+
+        inventory.setItem(
+                15,
+                createItem(
+                        Material.RED_CONCRETE,
+                        "§cBATAL",
+                        "§7Kembali ke daftar pemain."
+                )
+        );
+
+        if (!revivalManager.hasRequirements(player)) {
+            inventory.setItem(
+                    22,
+                    createItem(
+                            Material.BARRIER,
+                            "§cPersyaratan belum cukup",
+                            "§7Periksa item yang dibutuhkan."
+                    )
+            );
+        } else {
+            inventory.setItem(
+                    22,
+                    createItem(
+                            Material.EMERALD,
+                            "§aPersyaratan terpenuhi",
+                            "§7Kamu dapat memulai ritual."
+                    )
+            );
+        }
 
         player.openInventory(inventory);
     }
@@ -185,7 +255,13 @@ public class DeathRealmRevivalMenu implements Listener {
 
         int slot = event.getRawSlot();
 
-        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+        if (slot < 0
+                || slot >= event.getView().getTopInventory().getSize()) {
+            return;
+        }
+
+        if (holder.isConfirmation()) {
+            handleConfirmationClick(player, holder, slot);
             return;
         }
 
@@ -206,34 +282,53 @@ public class DeathRealmRevivalMenu implements Listener {
 
         UUID targetId = holder.getTarget(slot);
 
-        if (targetId == null) {
+        if (targetId != null) {
+            openConfirmation(player, targetId);
+        }
+    }
+
+    private void handleConfirmationClick(
+            Player player,
+            MenuHolder holder,
+            int slot
+    ) {
+        if (slot == 15) {
+            openMenu(player, 0);
             return;
         }
 
-        if (!timerManager.hasTimer(targetId)) {
+        if (slot != 11) {
+            return;
+        }
+
+        UUID targetId = holder.getSelectedTarget();
+
+        if (targetId == null
+                || !revivalManager.canRevive(targetId)) {
             player.sendMessage(
-                    "§cPemain tersebut sudah tidak berstatus mati."
+                    "§cTarget sudah tidak dapat dibangkitkan."
             );
-            openMenu(player, holder.getPage());
+            player.closeInventory();
             return;
         }
 
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetId);
+        if (!revivalManager.hasRequirements(player)) {
+            player.sendMessage(
+                    "§cItem persyaratan ritual belum mencukupi."
+            );
+            return;
+        }
 
-        String targetName = target.getName() == null
-                ? targetId.toString()
-                : target.getName();
-
-        player.closeInventory();
-
-        player.sendMessage(
-                "§aKamu memilih §e" + targetName
-                        + "§a untuk dibangkitkan."
-        );
-
-        player.sendMessage(
-                "§7Persyaratan dan proses ritual akan diperiksa pada tahap berikutnya."
-        );
+        if (revivalManager.startRitual(player, targetId)) {
+            player.closeInventory();
+            player.sendMessage(
+                    "§aRitual kebangkitan berhasil dimulai!"
+            );
+        } else {
+            player.sendMessage(
+                    "§cRitual gagal dimulai. Periksa status target dan persyaratan."
+            );
+        }
     }
 
     private ItemStack createItem(
@@ -263,15 +358,32 @@ public class DeathRealmRevivalMenu implements Listener {
     private static class MenuHolder implements InventoryHolder {
 
         private final int page;
+        private final boolean confirmation;
+        private final UUID selectedTarget;
         private final Map<Integer, UUID> targets = new HashMap<>();
+
         private Inventory inventory;
 
-        private MenuHolder(int page) {
+        private MenuHolder(
+                int page,
+                boolean confirmation,
+                UUID selectedTarget
+        ) {
             this.page = page;
+            this.confirmation = confirmation;
+            this.selectedTarget = selectedTarget;
         }
 
         public int getPage() {
             return page;
+        }
+
+        public boolean isConfirmation() {
+            return confirmation;
+        }
+
+        public UUID getSelectedTarget() {
+            return selectedTarget;
         }
 
         public void setInventory(Inventory inventory) {
@@ -291,4 +403,4 @@ public class DeathRealmRevivalMenu implements Listener {
             return inventory;
         }
     }
-          }
+}
