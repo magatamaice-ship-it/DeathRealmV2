@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 public class DeathRealmResurrection {
 
@@ -34,8 +35,18 @@ public class DeathRealmResurrection {
         this.cinematic = new DeathRealmResurrectionCinematic(plugin);
     }
 
+    // Kompatibilitas dengan pemanggilan sistem lama.
     public boolean resurrect(Player player) {
+        return resurrect(player, null);
+    }
+
+    // Callback hanya menerima true setelah teleport berhasil.
+    public boolean resurrect(
+            Player player,
+            Consumer<Boolean> onComplete
+    ) {
         if (player == null || !player.isOnline()) {
+            notifyResult(onComplete, false);
             return false;
         }
 
@@ -43,6 +54,7 @@ public class DeathRealmResurrection {
 
         if (!timerManager.hasTimer(uuid)
                 || !resurrecting.add(uuid)) {
+            notifyResult(onComplete, false);
             return false;
         }
 
@@ -55,6 +67,7 @@ public class DeathRealmResurrection {
             );
 
             resurrecting.remove(uuid);
+            notifyResult(onComplete, false);
             return false;
         }
 
@@ -68,11 +81,13 @@ public class DeathRealmResurrection {
 
             if (!player.isOnline()) {
                 resurrecting.remove(uuid);
+                notifyResult(onComplete, false);
                 return;
             }
 
             if (!timerManager.hasTimer(uuid)) {
                 resurrecting.remove(uuid);
+                notifyResult(onComplete, false);
                 return;
             }
 
@@ -83,6 +98,7 @@ public class DeathRealmResurrection {
                 );
 
                 resurrecting.remove(uuid);
+                notifyResult(onComplete, false);
                 return;
             }
 
@@ -100,19 +116,18 @@ public class DeathRealmResurrection {
                         "§cKebangkitan gagal. Jiwamu masih berada di DeathRealm."
                 );
 
+                notifyResult(onComplete, false);
                 return;
             }
 
-            // Bersihkan tampilan fragmen.
+            // Bersihkan tampilan dan data fragmen.
             plugin.getSoulFragmentDisplay().removeFragments(uuid);
-
-            // Hapus seluruh progres dan lokasi ujian lama.
             plugin.getSoulFragmentManager().resetTrial(uuid);
 
             // Hapus timer kematian.
             timerManager.removeTimer(uuid);
 
-            // Sembunyikan BossBar kematian.
+            // Sembunyikan BossBar.
             bossBar.hide(player);
 
             // Pulihkan kondisi pemain.
@@ -127,12 +142,22 @@ public class DeathRealmResurrection {
             plugin.getMessages().sendResurrectionMessage(player);
 
             resurrecting.remove(uuid);
-
-            // Perbarui visibilitas seluruh pemain.
             visibility.refreshAll();
+
+            // Kebangkitan benar-benar berhasil.
+            notifyResult(onComplete, true);
         });
-        
+
         return true;
+    }
+
+    private void notifyResult(
+            Consumer<Boolean> callback,
+            boolean success
+    ) {
+        if (callback != null) {
+            callback.accept(success);
+        }
     }
 
     private Location findDestination(Player player) {
