@@ -117,6 +117,16 @@ public class DeathRealmFriendRevivalManager implements Listener {
         return uuid != null && pendingRevival.contains(uuid);
     }
 
+    public boolean isRitualActive(UUID uuid) {
+        return uuid != null
+                && (activeRituals.containsKey(uuid)
+                || finishingRevival.contains(uuid));
+    }
+
+    public boolean isFinishingRevival(UUID uuid) {
+        return uuid != null && finishingRevival.contains(uuid);
+    }
+
     public boolean startRitual(Player initiator, UUID targetId) {
         if (initiator == null || !initiator.isOnline()
                 || targetId == null
