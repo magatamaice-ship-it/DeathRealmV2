@@ -1,10 +1,11 @@
+
 package id.deathrealm;
 
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.type.Sapling;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
@@ -15,6 +16,7 @@ public class DeathRealmIsland {
 
     private final DeathRealm plugin;
     private final World world;
+    private final NamespacedKey generatedKey;
 
     private final List<BlockDataEntry> blocks = new ArrayList<>();
     private final List<PlantData> plants = new ArrayList<>();
@@ -26,10 +28,15 @@ public class DeathRealmIsland {
     private static final int DEPTH = 24;
 
     private final Random random = new Random(2026);
+    private boolean generating = false;
 
     public DeathRealmIsland(DeathRealm plugin, World world) {
         this.plugin = plugin;
         this.world = world;
+        this.generatedKey = new NamespacedKey(
+                plugin,
+                "island-generated"
+        );
     }
 
     public void generate() {
@@ -44,12 +51,12 @@ public class DeathRealmIsland {
             return;
         }
 
-        if (world.getBlockAt(
-                CENTER_X, SURFACE_Y, CENTER_Z
-        ).getType() != Material.AIR) {
-
+        if (world.getPersistentDataContainer().has(
+                generatedKey,
+                PersistentDataType.BYTE
+        )) {
             plugin.getLogger().info(
-                    "Pulau DeathRealm sudah tersedia."
+                    "Pulau DeathRealm sudah selesai dibuat."
             );
 
             if (onComplete != null) {
@@ -57,6 +64,18 @@ public class DeathRealmIsland {
             }
             return;
         }
+
+        if (generating) {
+            plugin.getLogger().warning(
+                    "Pembuatan pulau DeathRealm sedang berlangsung."
+            );
+            return;
+        }
+
+        generating = true;
+
+        blocks.clear();
+        plants.clear();
 
         prepareBlocks();
 
@@ -100,12 +119,21 @@ public class DeathRealmIsland {
 
                         if (ground.getType() == Material.GRASS_BLOCK
                                 && above.getType() == Material.AIR) {
-
                             above.setType(plant.material, false);
                         }
                     }
 
                     if (plantIndex >= plants.size()) {
+                        world.getPersistentDataContainer().set(
+                                generatedKey,
+                                PersistentDataType.BYTE,
+                                (byte) 1
+                        );
+
+                        world.save();
+
+                        generating = false;
+
                         plugin.getLogger().info(
                                 "Pulau DeathRealm dan vegetasi berhasil dibuat!"
                         );
