@@ -328,7 +328,9 @@ public class DeathRealmSoulFragmentRitual implements Listener {
                 uuid,
                 "§cRitual dibatalkan karena kamu keluar dari server."
         );
-        finishingRituals.remove(uuid);
+
+        // finishingRituals tidak dihapus di sini.
+        // Pengunci tetap aktif sampai callback resurrection selesai.
     }
 
     @EventHandler
@@ -339,11 +341,14 @@ public class DeathRealmSoulFragmentRitual implements Listener {
                 uuid,
                 "§cRitual dibatalkan karena kamu mati."
         );
-        finishingRituals.remove(uuid);
+
+        // Jangan menghapus finishingRituals secara paksa.
     }
 
     public void stop() {
-        for (UUID uuid : activeRituals.keySet().toArray(new UUID[0])) {
+        for (UUID uuid :
+                activeRituals.keySet().toArray(new UUID[0])) {
+
             cancelRitual(
                     uuid,
                     "§cRitual dihentikan karena server dimatikan."
