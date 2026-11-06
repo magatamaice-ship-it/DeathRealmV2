@@ -45,7 +45,6 @@ public class DeathRealmFriendRevivalManager implements Listener {
                 plugin.getDataFolder(),
                 "revival-requirements.yml"
         );
-
         load();
     }
 
@@ -158,10 +157,6 @@ public class DeathRealmFriendRevivalManager implements Listener {
                 "§6Ritual kebangkitan dimulai. Waktu: 3 menit."
         );
 
-        Bukkit.getPluginManager().callEvent(
-                new FriendRevivalStartEvent(targetId)
-        );
-
         final int[] elapsed = {0};
 
         BukkitTask task = Bukkit.getScheduler().runTaskTimer(
@@ -169,9 +164,11 @@ public class DeathRealmFriendRevivalManager implements Listener {
                 () -> {
                     if (!canRevive(targetId)) {
                         cancelRitual(targetId);
-                        initiator.sendMessage(
-                                "§cRitual dibatalkan. Target sudah tidak berstatus mati."
-                        );
+                        if (initiator.isOnline()) {
+                            initiator.sendMessage(
+                                    "§cRitual dibatalkan. Target sudah tidak berstatus mati."
+                            );
+                        }
                         return;
                     }
 
@@ -256,7 +253,6 @@ public class DeathRealmFriendRevivalManager implements Listener {
 
     private void playRitualEffects(Location altar, int elapsed) {
         int stage = elapsed / 45;
-
         Location center = altar.clone().add(0.5, 1.2, 0.5);
 
         altar.getWorld().spawnParticle(
@@ -408,7 +404,7 @@ public class DeathRealmFriendRevivalManager implements Listener {
         } catch (IOException exception) {
             plugin.getLogger().severe(
                     "Gagal menyimpan persyaratan ritual: "
-                    + exception.getMessage()
+                            + exception.getMessage()
             );
         }
     }
