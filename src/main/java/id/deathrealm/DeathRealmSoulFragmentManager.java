@@ -22,47 +22,34 @@ public class DeathRealmSoulFragmentManager {
     private final File file;
     private final Random random = new Random();
 
-    private final Map<UUID, List<Location>> locations =
-            new HashMap<>();
-
-    private final Map<UUID, Set<Integer>> collected =
-            new HashMap<>();
-
-    private final Set<UUID> activeTrials =
-            new HashSet<>();
+    private final Map<UUID, List<Location>> locations = new HashMap<>();
+    private final Map<UUID, Set<Integer>> collected = new HashMap<>();
+    private final Set<UUID> activeTrials = new HashSet<>();
 
     public DeathRealmSoulFragmentManager(DeathRealm plugin) {
         this.plugin = plugin;
-        this.file = new File(
-                plugin.getDataFolder(),
-                "soul-fragments.yml"
-        );
-
+        this.file = new File(plugin.getDataFolder(), "soul-fragments.yml");
         load();
     }
 
     public boolean startTrial(UUID uuid) {
-        if (!plugin.getTimerManager().isTrialUnlocked(uuid)) {
+        if (!plugin.getTimerManager().isTrialUnlocked(uuid)
+                || activeTrials.contains(uuid)) {
             return false;
         }
 
-        if (activeTrials.contains(uuid)) {
-            return false;
-        }
+        List<Location> generated = generateLocations();
 
-        List<Location> playerLocations = generateLocations();
-
-        if (playerLocations.size() != FRAGMENT_COUNT) {
+        if (generated.size() != FRAGMENT_COUNT) {
             plugin.getLogger().warning(
                     "Gagal membuat tiga lokasi fragmen untuk " + uuid
             );
             return false;
         }
 
-        locations.put(uuid, playerLocations);
+        locations.put(uuid, generated);
         collected.put(uuid, new HashSet<>());
         activeTrials.add(uuid);
-
         save();
         return true;
     }
@@ -77,54 +64,50 @@ public class DeathRealmSoulFragmentManager {
 
     public List<Location> getLocations(UUID uuid) {
         List<Location> result = locations.get(uuid);
-
-        if (result == null) {
-            return Collections.emptyList();
-        }
-
-        return new ArrayList<>(result);
+        return result == null
+                ? Collections.emptyList()
+                : new ArrayList<>(result);
     }
 
     public boolean collectFragment(UUID uuid, int fragment) {
-        if (!activeTrials.contains(uuid)) {
-            return false;
-        }
-
-        if (fragment < 0 || fragment >= FRAGMENT_COUNT) {
+        if (!activeTrials.contains(uuid)
+                || fragment < 0
+                || fragment >= FRAGMENT_COUNT) {
             return false;
         }
 
         Set<Integer> playerCollected = collected.computeIfAbsent(
-                uuid,
-                key -> new HashSet<>()
+                uuid, key -> new HashSet<>()
         );
 
         if (playerCollected.contains(fragment)) {
             return false;
         }
 
-        plugin.getTimerManager().addFragment(
-                uuid,
-                getFragmentKey(fragment)
-        );
+        String key = getFragmentKey(fragment);
+
+        boolean alreadySaved = plugin.getTimerManager()
+                .hasFragment(uuid, key);
+
+        if (!alreadySaved && !plugin.getTimerManager()
+                .addFragment(uuid, key)) {
+            return false;
+        }
 
         playerCollected.add(fragment);
-
         save();
         return true;
     }
 
     public boolean hasCollected(UUID uuid, int fragment) {
         return collected.getOrDefault(
-                uuid,
-                Collections.emptySet()
+                uuid, Collections.emptySet()
         ).contains(fragment);
     }
 
     public int getCollectedCount(UUID uuid) {
         return collected.getOrDefault(
-                uuid,
-                Collections.emptySet()
+                uuid, Collections.emptySet()
         ).size();
     }
 
@@ -136,7 +119,6 @@ public class DeathRealmSoulFragmentManager {
         locations.remove(uuid);
         collected.remove(uuid);
         activeTrials.remove(uuid);
-
         save();
     }
 
@@ -146,60 +128,47 @@ public class DeathRealmSoulFragmentManager {
         for (UUID uuid : locations.keySet()) {
             String path = uuid.toString();
 
-            config.set(
-                    path + ".active",
-                    activeTrials.contains(uuid)
-            );
+            config.set(path + ".active", activeTrials.contains(uuid));
 
-            List<Map<String, Object>> savedLocations =
-                    new ArrayList<>();
+            List<Map<String, Object>> saved = new ArrayList<>();
 
             for (Location location : locations.get(uuid)) {
-                if (location.getWorld() == null) {
-                    continue;
-                }
+                if (location.getWorld() == null) continue;
 
                 Map<String, Object> data = new HashMap<>();
-
                 data.put("world", location.getWorld().getName());
                 data.put("x", location.getX());
                 data.put("y", location.getY());
                 data.put("z", location.getZ());
-
-                savedLocations.add(data);
+                saved.add(data);
             }
 
-            config.set(path + ".locations", savedLocations);
+            config.set(path + ".locations", saved);
+            config.set(path + ".collected", new ArrayList<>(
+                    collected.getOrDefault(uuid, Collections.emptySet())
+            ));
+        }
 
-            config.set(
-                    path + ".collected",
-                    new ArrayList<>(
-                            collected.getOrDefault(
-                                    uuid,
-                                    Collections.emptySet()
-                            )
-                    )
+        if (!plugin.getDataFolder().exists()
+                && !plugin.getDataFolder().mkdirs()) {
+            plugin.getLogger().severe(
+                    "Gagal membuat folder data DeathRealm!"
             );
+            return;
         }
 
         try {
-            if (!plugin.getDataFolder().exists()) {
-                plugin.getDataFolder().mkdirs();
-            }
-
             config.save(file);
         } catch (IOException exception) {
             plugin.getLogger().severe(
                     "Gagal menyimpan Soul Fragments: "
-                    + exception.getMessage()
+                            + exception.getMessage()
             );
         }
     }
 
     private void load() {
-        if (!file.exists()) {
-            return;
-        }
+        if (!file.exists()) return;
 
         YamlConfiguration config =
                 YamlConfiguration.loadConfiguration(file);
@@ -215,26 +184,19 @@ public class DeathRealmSoulFragmentManager {
 
             List<Location> playerLocations = new ArrayList<>();
 
-            for (Map<?, ?> data :
-                    config.getMapList(key + ".locations")) {
-
+            for (Map<?, ?> data : config.getMapList(key + ".locations")) {
                 try {
                     World world = plugin.getServer().getWorld(
                             String.valueOf(data.get("world"))
                     );
 
-                    if (world == null) {
-                        continue;
-                    }
+                    if (world == null) continue;
 
                     double x = ((Number) data.get("x")).doubleValue();
                     double y = ((Number) data.get("y")).doubleValue();
                     double z = ((Number) data.get("z")).doubleValue();
 
-                    playerLocations.add(
-                            new Location(world, x, y, z)
-                    );
-
+                    playerLocations.add(new Location(world, x, y, z));
                 } catch (Exception exception) {
                     plugin.getLogger().warning(
                             "Data lokasi fragmen rusak untuk " + uuid
@@ -244,15 +206,10 @@ public class DeathRealmSoulFragmentManager {
 
             Set<Integer> playerCollected = new HashSet<>();
 
-            for (Object value :
-                    config.getList(
-                            key + ".collected",
-                            Collections.emptyList()
-                    )) {
-
+            for (Object value : config.getList(
+                    key + ".collected", Collections.emptyList())) {
                 if (value instanceof Number number) {
                     int index = number.intValue();
-
                     if (index >= 0 && index < FRAGMENT_COUNT) {
                         playerCollected.add(index);
                     }
@@ -272,30 +229,24 @@ public class DeathRealmSoulFragmentManager {
 
     private List<Location> generateLocations() {
         List<Location> result = new ArrayList<>();
-
         World world = plugin.getServer().getWorld("DeathRealm");
 
-        if (world == null) {
-            return result;
-        }
+        if (world == null) return result;
 
-        List<Location> occupiedLocations = new ArrayList<>();
+        List<Location> occupied = new ArrayList<>();
 
         for (List<Location> playerLocations : locations.values()) {
             for (Location existing : playerLocations) {
                 if (existing.getWorld() != null
                         && existing.getWorld().equals(world)) {
-                    occupiedLocations.add(existing);
+                    occupied.add(existing);
                 }
             }
         }
 
         int attempts = 0;
-        int maxAttempts = 10000;
 
-        while (result.size() < FRAGMENT_COUNT
-                && attempts < maxAttempts) {
-
+        while (result.size() < FRAGMENT_COUNT && attempts < 10000) {
             attempts++;
 
             double angle = random.nextDouble() * Math.PI * 2;
@@ -305,31 +256,23 @@ public class DeathRealmSoulFragmentManager {
             int x = CENTER_X + (int) Math.round(
                     Math.cos(angle) * distance
             );
-
             int z = CENTER_Z + (int) Math.round(
                     Math.sin(angle) * distance
             );
 
             Location location = new Location(
-                    world,
-                    x + 0.5,
-                    SURFACE_Y + 1,
-                    z + 0.5
+                    world, x + 0.5, SURFACE_Y + 1, z + 0.5
             );
 
-            if (!world.getBlockAt(x, SURFACE_Y, z)
-                    .getType().isSolid()) {
-                continue;
-            }
-
-            if (!world.getBlockAt(x, SURFACE_Y + 1, z)
-                    .isPassable()) {
+            if (!world.getBlockAt(x, SURFACE_Y, z).getType().isSolid()
+                    || !world.getBlockAt(x, SURFACE_Y + 1, z).isPassable()
+                    || !world.getBlockAt(x, SURFACE_Y + 2, z).isPassable()) {
                 continue;
             }
 
             boolean tooClose = false;
 
-            for (Location existing : occupiedLocations) {
+            for (Location existing : occupied) {
                 if (existing.distanceSquared(location)
                         < MIN_DISTANCE_SQUARED) {
                     tooClose = true;
@@ -347,9 +290,7 @@ public class DeathRealmSoulFragmentManager {
                 }
             }
 
-            if (!tooClose) {
-                result.add(location);
-            }
+            if (!tooClose) result.add(location);
         }
 
         return result;
