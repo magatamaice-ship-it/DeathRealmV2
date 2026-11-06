@@ -359,11 +359,47 @@ public class DeathRealmAltarCommand implements CommandExecutor {
             return;
         }
 
-        plugin.getTimerManager().unlockTrial(target.getUniqueId());
+        if (!plugin.getTimerManager().forceUnlockTrial(
+                target.getUniqueId()
+        )) {
+            admin.sendMessage(
+                    "§cGagal membuka Tahap 2. Periksa status timer pemain."
+            );
+            return;
+        }
+
+        DeathRealmSoulFragmentManager fragmentManager =
+                plugin.getSoulFragmentManager();
+
+        if (!fragmentManager.isTrialActive(target.getUniqueId())) {
+            boolean started = fragmentManager.startTrial(
+                    target.getUniqueId()
+            );
+
+            if (!started) {
+                admin.sendMessage(
+                        "§cGagal memulai ujian Fragmen Jiwa."
+                );
+                return;
+            }
+        }
+
+        plugin.getSoulFragmentDisplay().spawnFragments(
+                target.getUniqueId(),
+                target.getName()
+        );
 
         admin.sendMessage(
                 "§aTahap 1 berhasil dilewati untuk §e"
                         + target.getName() + "§a."
+        );
+
+        target.sendTitle(
+                "§5TAHAP 2 TERBUKA",
+                "§dTemukan tiga Fragmen Jiwa",
+                10,
+                60,
+                20
         );
 
         target.sendMessage(
@@ -371,10 +407,21 @@ public class DeathRealmAltarCommand implements CommandExecutor {
         );
 
         target.sendMessage(
-                "§eAdmin telah membuka Tahap 2. Mulailah pencarian Soul Fragment!"
+                "§eAdmin telah membuka Tahap 2."
         );
 
-        plugin.getSoulFragmentMenu().openMenu(target);
+        target.sendMessage(
+                "§7Fragmen terkumpul: §f"
+                        + fragmentManager.getCollectedCount(
+                                target.getUniqueId()
+                        ) + "/3"
+        );
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (target.isOnline()) {
+                plugin.getSoulFragmentMenu().openMenu(target);
+            }
+        });
     }
 
     private World getMainWorld() {
