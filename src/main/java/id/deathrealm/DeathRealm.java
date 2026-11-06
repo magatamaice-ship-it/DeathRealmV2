@@ -33,7 +33,8 @@ public final class DeathRealm extends JavaPlugin {
         getLogger().info("Memulai DeathRealmV2...");
 
         timerManager = new DeathTimerManager(this);
-        friendRevivalManager = new DeathRealmFriendRevivalManager(this);
+        friendRevivalManager =
+                new DeathRealmFriendRevivalManager(this);
 
         worldManager = new DeathRealmWorld(this);
         worldManager.createWorld();
@@ -69,6 +70,9 @@ public final class DeathRealm extends JavaPlugin {
                 bossBar,
                 visibility
         );
+
+        // Hubungkan sistem ritual dengan sistem kebangkitan.
+        friendRevivalManager.setResurrection(resurrection);
 
         timerTask = new DeathRealmTimerTask(
                 this,
@@ -106,15 +110,30 @@ public final class DeathRealm extends JavaPlugin {
 
         Bukkit.getPluginManager().registerEvents(
                 new DeathRealmDeathListener(
-                        this, timerManager, worldManager,
-                        protection, bossBar, visibility, cinematic
+                        this,
+                        timerManager,
+                        worldManager,
+                        protection,
+                        bossBar,
+                        visibility,
+                        cinematic
                 ), this
+        );
+
+        // Listener untuk kebangkitan pemain yang sebelumnya offline.
+        Bukkit.getPluginManager().registerEvents(
+                friendRevivalManager, this
         );
 
         Bukkit.getPluginManager().registerEvents(
                 new DeathRealmJoinListener(
-                        this, timerManager, worldManager,
-                        protection, bossBar, visibility, resurrection
+                        this,
+                        timerManager,
+                        worldManager,
+                        protection,
+                        bossBar,
+                        visibility,
+                        resurrection
                 ), this
         );
 
