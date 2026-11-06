@@ -23,6 +23,7 @@ public final class DeathRealm extends JavaPlugin {
     private DeathRealmMessages messages;
     private DeathRealmWarningTask warningTask;
     private DeathRealmAltarManager altarManager;
+    private DeathRealmPortalManager portalManager;
 
     @Override
     public void onEnable() {
@@ -47,6 +48,7 @@ public final class DeathRealm extends JavaPlugin {
         structureManager.generate(deathWorld);
 
         altarManager = new DeathRealmAltarManager(this);
+        portalManager = new DeathRealmPortalManager(this);
 
         new DeathRealmBoundary(this, deathWorld).applyBoundary();
 
@@ -122,6 +124,15 @@ public final class DeathRealm extends JavaPlugin {
             );
         }
 
+        if (getCommand("alamkacung") != null) {
+            getCommand("alamkacung").setExecutor(
+                    new DeathRealmAltarCommand(
+                            altarManager,
+                            portalManager
+                    )
+            );
+        }
+
         visibility.refreshAll();
 
         getLogger().info("DeathRealmV2 berhasil diaktifkan!");
@@ -159,5 +170,9 @@ public final class DeathRealm extends JavaPlugin {
 
     public DeathRealmAltarManager getAltarManager() {
         return altarManager;
+    }
+
+    public DeathRealmPortalManager getPortalManager() {
+        return portalManager;
     }
 }
