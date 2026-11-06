@@ -220,6 +220,10 @@ public class DeathRealmFriendRevivalManager implements Listener {
             boolean started = resurrection.resurrect(target);
 
             if (started) {
+                // Kebangkitan teman berhasil.
+                // Batalkan ritual kebangkitan sendiri milik target.
+                plugin.getSoulFragmentRitual().cancelRitual(targetId);
+
                 if (initiator.isOnline()) {
                     initiator.sendMessage(
                             "§aRitual selesai! Kebangkitan target dimulai."
@@ -251,12 +255,24 @@ public class DeathRealmFriendRevivalManager implements Listener {
         plugin.getSoulFragmentManager().resetTrial(targetId);
     }
 
-    private void cancelRitual(UUID targetId) {
+    /**
+     * Membatalkan ritual teman berdasarkan UUID target.
+     * Dipakai ketika ritual kebangkitan sendiri berhasil lebih dahulu.
+     */
+    public void cancelRitualForTarget(UUID targetId) {
+        if (targetId == null) {
+            return;
+        }
+
         BukkitTask task = activeRituals.remove(targetId);
 
         if (task != null) {
             task.cancel();
         }
+    }
+
+    private void cancelRitual(UUID targetId) {
+        cancelRitualForTarget(targetId);
     }
 
     private void playRitualEffects(Location altar, int elapsed) {
