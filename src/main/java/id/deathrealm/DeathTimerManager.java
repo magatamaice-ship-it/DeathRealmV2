@@ -63,9 +63,19 @@ public class DeathTimerManager {
             return;
         }
 
+        forceUnlockTrial(playerId);
+    }
+
+    public boolean forceUnlockTrial(UUID playerId) {
+        if (!hasTimer(playerId)) {
+            return false;
+        }
+
         if (unlockedTrials.add(playerId)) {
             saveTimers();
         }
+
+        return true;
     }
 
     public boolean isTrialUnlocked(UUID playerId) {
@@ -193,7 +203,6 @@ public class DeathTimerManager {
             }
         }
 
-        // Kompatibilitas dengan format lama.
         for (String key : config.getKeys(false)) {
             if (key.equals("timers") || key.equals("trials")) {
                 continue;
@@ -219,7 +228,6 @@ public class DeathTimerManager {
                 try {
                     UUID uuid = UUID.fromString(key);
 
-                    // Abaikan data ujian tanpa timer.
                     if (!timers.containsKey(uuid)) {
                         continue;
                     }
