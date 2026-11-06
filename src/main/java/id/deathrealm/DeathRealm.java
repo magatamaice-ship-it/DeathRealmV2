@@ -30,6 +30,7 @@ public final class DeathRealm extends JavaPlugin {
     private DeathRealmSoulFragmentMenu soulFragmentMenu;
     private DeathRealmSoulFragmentDisplay soulFragmentDisplay;
     private DeathRealmSoulFragmentListener soulFragmentListener;
+    private DeathRealmSoulFragmentRitual soulFragmentRitual;
 
     @Override
     public void onEnable() {
@@ -99,6 +100,12 @@ public final class DeathRealm extends JavaPlugin {
                         this,
                         soulFragmentManager,
                         soulFragmentDisplay
+                );
+
+        soulFragmentRitual =
+                new DeathRealmSoulFragmentRitual(
+                        this,
+                        resurrection
                 );
 
         timerTask = new DeathRealmTimerTask(
@@ -206,6 +213,10 @@ public final class DeathRealm extends JavaPlugin {
         if (atmosphere != null) atmosphere.stop();
         if (warningTask != null) warningTask.stop();
 
+        if (soulFragmentRitual != null) {
+            soulFragmentRitual.stop();
+        }
+
         if (soulFragmentListener != null) {
             soulFragmentListener.stop();
         }
@@ -263,5 +274,9 @@ public final class DeathRealm extends JavaPlugin {
 
     public DeathRealmSoulFragmentDisplay getSoulFragmentDisplay() {
         return soulFragmentDisplay;
+    }
+
+    public DeathRealmSoulFragmentRitual getSoulFragmentRitual() {
+        return soulFragmentRitual;
     }
 }
