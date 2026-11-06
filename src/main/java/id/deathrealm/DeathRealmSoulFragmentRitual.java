@@ -14,6 +14,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.HashMap;
@@ -65,10 +66,9 @@ public class DeathRealmSoulFragmentRitual implements Listener {
 
         if (activeRituals.containsKey(uuid)
                 || finishingRituals.contains(uuid)
-                || plugin.getFriendRevivalManager()
-                .isRitualActive(uuid)
-                || plugin.getFriendRevivalManager()
-                .isFinishingRevival(uuid)) {
+                || resurrection.isResurrecting(uuid)
+                || plugin.getFriendRevivalManager().isRitualActive(uuid)
+                || plugin.getFriendRevivalManager().isFinishingRevival(uuid)) {
             player.sendMessage(
                     "§cSudah ada proses kebangkitan yang berlangsung!"
             );
@@ -321,6 +321,18 @@ public class DeathRealmSoulFragmentRitual implements Listener {
     }
 
     @EventHandler
+    public void onPlayerTeleport(PlayerTeleportEvent event) {
+        UUID uuid = event.getPlayer().getUniqueId();
+
+        if (activeRituals.containsKey(uuid)) {
+            event.setCancelled(true);
+            event.getPlayer().sendMessage(
+                    "§cKamu tidak bisa teleport selama ritual berlangsung!"
+            );
+        }
+    }
+
+    @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
 
@@ -328,9 +340,6 @@ public class DeathRealmSoulFragmentRitual implements Listener {
                 uuid,
                 "§cRitual dibatalkan karena kamu keluar dari server."
         );
-
-        // finishingRituals tidak dihapus di sini.
-        // Pengunci tetap aktif sampai callback resurrection selesai.
     }
 
     @EventHandler
@@ -341,8 +350,6 @@ public class DeathRealmSoulFragmentRitual implements Listener {
                 uuid,
                 "§cRitual dibatalkan karena kamu mati."
         );
-
-        // Jangan menghapus finishingRituals secara paksa.
     }
 
     public void stop() {
