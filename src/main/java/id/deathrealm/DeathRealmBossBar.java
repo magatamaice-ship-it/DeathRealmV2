@@ -1,3 +1,4 @@
+
 package id.deathrealm;
 
 import org.bukkit.Bukkit;
@@ -53,7 +54,7 @@ public class DeathRealmBossBar {
         BossBar bar = bossBars.computeIfAbsent(
                 uuid,
                 key -> Bukkit.createBossBar(
-                        "Waktu di ALAMKACUNG",
+                        "ALAMKACUNG",
                         BarColor.PURPLE,
                         BarStyle.SOLID
                 )
@@ -78,12 +79,9 @@ public class DeathRealmBossBar {
         for (Player player : Bukkit.getOnlinePlayers()) {
             UUID uuid = player.getUniqueId();
 
-            if (!timerManager.hasTimer(uuid)) {
-                hide(player);
-                continue;
-            }
-
-            if (!player.getWorld().getName().equalsIgnoreCase("DeathRealm")) {
+            if (!timerManager.hasTimer(uuid)
+                    || !player.getWorld().getName()
+                    .equalsIgnoreCase("DeathRealm")) {
                 hide(player);
                 continue;
             }
@@ -93,10 +91,26 @@ public class DeathRealmBossBar {
     }
 
     private void updatePlayer(Player player, BossBar bar) {
-        long remaining = timerManager.getRemainingTime(
-                player.getUniqueId()
-        );
+        UUID uuid = player.getUniqueId();
 
+        if (timerManager.isTrialUnlocked(uuid)) {
+            int collected = timerManager.getFragmentCount(uuid);
+
+            bar.setTitle(
+                    "§5ALAMKACUNG §8| §dFragmen Jiwa: §f"
+                    + collected + "/3"
+            );
+
+            bar.setColor(BarColor.PURPLE);
+
+            bar.setProgress(
+                    Math.max(0.0, Math.min(1.0, collected / 3.0))
+            );
+
+            return;
+        }
+
+        long remaining = timerManager.getRemainingTime(uuid);
         long seconds = remaining / 1000L;
 
         long minutes = seconds / 60L;
@@ -113,7 +127,11 @@ public class DeathRealmBossBar {
                 Math.min(1.0, (double) remaining / DEATH_TIME)
         );
 
-        bar.setTitle("§5ALAMKACUNG §8| §fWaktu tersisa: §d" + time);
+        bar.setTitle(
+                "§5ALAMKACUNG §8| §fWaktu tersisa: §d" + time
+        );
+
+        bar.setColor(BarColor.PURPLE);
         bar.setProgress(progress);
     }
 
