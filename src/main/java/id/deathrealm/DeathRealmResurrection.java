@@ -8,6 +8,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -112,13 +113,7 @@ public class DeathRealmResurrection {
 
                 bossBar.hide(player);
 
-                player.setFlying(false);
-                player.setAllowFlight(false);
-                player.setGameMode(GameMode.SURVIVAL);
-                player.setHealth(player.getMaxHealth());
-                player.setFoodLevel(20);
-                player.setSaturation(20);
-                player.setFallDistance(0);
+                restoreLivingPlayer(player);
 
                 plugin.getMessages().sendResurrectionMessage(player);
 
@@ -141,6 +136,29 @@ public class DeathRealmResurrection {
         }
 
         return true;
+    }
+
+    private void restoreLivingPlayer(Player player) {
+        player.setInvulnerable(false);
+        player.setFlying(false);
+        player.setAllowFlight(false);
+        player.setGameMode(GameMode.SURVIVAL);
+
+        // Bersihkan efek potion yang mungkin terbawa dari ALAMKACUNG.
+        for (PotionEffect effect : player.getActivePotionEffects()) {
+            player.removePotionEffect(effect.getType());
+        }
+
+        player.setHealth(player.getMaxHealth());
+        player.setFoodLevel(20);
+        player.setSaturation(20);
+        player.setExhaustion(0);
+        player.setFireTicks(0);
+        player.setFallDistance(0);
+        player.setFreezeTicks(0);
+        player.setArrowsInBody(0);
+        player.setRemainingAir(player.getMaximumAir());
+        player.setNoDamageTicks(0);
     }
 
     private void notifyResult(
