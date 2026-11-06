@@ -2,11 +2,13 @@
 package id.deathrealm;
 
 import org.bukkit.Bukkit;
-import org.bukkit.World;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+
+import java.util.UUID;
 
 public class DeathRealmJoinListener implements Listener {
 
@@ -16,7 +18,6 @@ public class DeathRealmJoinListener implements Listener {
     private final DeathRealmProtection protection;
     private final DeathRealmBossBar bossBar;
     private final DeathRealmVisibility visibility;
-    private final DeathRealmResurrection resurrection;
     private final DeathRealmEntryEffect entryEffect;
 
     public DeathRealmJoinListener(
@@ -34,13 +35,14 @@ public class DeathRealmJoinListener implements Listener {
         this.protection = protection;
         this.bossBar = bossBar;
         this.visibility = visibility;
-        this.resurrection = resurrection;
         this.entryEffect = new DeathRealmEntryEffect(plugin);
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
+
         Player player = event.getPlayer();
+        UUID uuid = player.getUniqueId();
 
         Bukkit.getScheduler().runTask(plugin, () -> {
 
@@ -48,102 +50,100 @@ public class DeathRealmJoinListener implements Listener {
                 return;
             }
 
-            if (!timerManager.hasTimer(player.getUniqueId())) {
+            // Pemain dengan kebangkitan tertunda harus
+            // menyelesaikan proses resurrection terlebih dahulu.
+            if (plugin.getFriendRevivalManager()
+                    .isPendingRevival(uuid)) {
+                return;
+            }
+
+            // Pemain yang tidak memiliki timer adalah pemain hidup.
+            if (!timerManager.hasTimer(uuid)) {
                 visibility.refreshAll();
                 return;
             }
 
-            World deathWorld = worldManager.getWorld();
-
-            if (deathWorld == null) {
-                plugin.getLogger().severe(
-                        "Dunia DeathRealm tidak tersedia saat pemain masuk!"
+            if (worldManager.getWorld() == null) {
+                plugin.getLogger().warning(
+                        "Dunia DeathRealm belum tersedia saat pemain masuk."
                 );
-
-                player.sendMessage(
-                        "§cDeathRealm sedang tidak tersedia. Hubungi admin."
-                );
-
                 return;
             }
 
-            boolean teleported = player.teleport(
-                    deathWorld.getSpawnLocation()
-            );
+            Location destination =
+                    worldManager.getWorld().getSpawnLocation();
 
-            if (!teleported
-                    || !player.getWorld().equals(deathWorld)) {
+            boolean teleported = player.teleport(destination);
 
-                plugin.getLogger().severe(
-                        "Gagal mengembalikan "
-                        + player.getName()
-                        + " ke DeathRealm saat login."
+            if (!teleported) {
+                plugin.getLogger().warning(
+                        "Gagal mengirim pemain ke DeathRealm: "
+                                + player.getName()
                 );
-
                 return;
             }
 
             protection.preparePlayer(player);
 
-            if (timerManager.isExpired(player.getUniqueId())) {
-                timerManager.unlockTrial(player.getUniqueId());
+            // Jika waktu tunggu sudah selesai, buka menu percobaan.
+            if (timerManager.isTrialUnlocked(uuid)) {
 
                 player.sendTitle(
-                        "§5UJIAN KEBANGKITAN",
-                        "§dUjianmu telah terbuka",
+                        "§5ALAMKACUNG",
+                        "§dPercobaan kebangkitan telah terbuka",
                         10,
-                        70,
+                        60,
                         20
                 );
 
                 player.sendMessage(
-                        "§5[ALAMKACUNG] §dUjian kebangkitanmu telah terbuka!"
+                        "§dWaktumu telah habis. Percobaan kebangkitan sekarang tersedia."
                 );
 
                 Bukkit.getScheduler().runTaskLater(
                         plugin,
                         () -> {
+
                             if (!player.isOnline()
-                                    || !timerManager.hasTimer(
-                                            player.getUniqueId()
-                                    )
-                                    || !timerManager.isTrialUnlocked(
-                                            player.getUniqueId()
-                                    )) {
+                                    || !timerManager.hasTimer(uuid)
+                                    || !timerManager.isTrialUnlocked(uuid)
+                                    || plugin.getFriendRevivalManager()
+                                    .isPendingRevival(uuid)) {
                                 return;
                             }
 
                             if (plugin.getSoulFragmentManager()
-                                    .isTrialActive(player.getUniqueId())) {
+                                    .getActiveTrialOwners()
+                                    .contains(uuid)) {
 
                                 plugin.getSoulFragmentDisplay()
                                         .spawnFragments(
-                                                player.getUniqueId(),
+                                                uuid,
                                                 player.getName()
                                         );
 
                                 player.sendMessage(
-                                        "§dPencarian Fragmen Jiwa dilanjutkan."
+                                        "§dPercobaanmu masih berlangsung. Kumpulkan ketiga Fragmen Jiwa."
                                 );
+
                             } else {
+
                                 plugin.getSoulFragmentMenu()
                                         .openMenu(player);
                             }
+
                         },
                         40L
                 );
 
             } else {
+
                 bossBar.show(player);
                 entryEffect.play(player);
-                plugin.getMessages().sendEntryMessage(player);
 
-                DeathRealmWarningTask warningTask =
-                        plugin.getWarningTask();
-
-                if (warningTask != null) {
-                    warningTask.checkPlayer(player);
-                }
+                player.sendMessage(
+                        "§5Kamu berada di ALAMKACUNG."
+                );
             }
 
             visibility.refreshAll();
