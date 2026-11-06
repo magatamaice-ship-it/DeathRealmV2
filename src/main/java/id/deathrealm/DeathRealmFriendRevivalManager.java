@@ -719,7 +719,7 @@ public class DeathRealmFriendRevivalManager implements Listener {
         save();
     }
 
-    private static class Requirement {
+    public static class Requirement {
 
         private final ItemStack item;
         private final int amount;
