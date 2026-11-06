@@ -1,3 +1,4 @@
+
 package id.deathrealm;
 
 import org.bukkit.Bukkit;
@@ -21,6 +22,7 @@ public final class DeathRealm extends JavaPlugin {
     private DeathRealmAtmosphere atmosphere;
     private DeathRealmMessages messages;
     private DeathRealmWarningTask warningTask;
+    private DeathRealmAltarManager altarManager;
 
     @Override
     public void onEnable() {
@@ -43,6 +45,8 @@ public final class DeathRealm extends JavaPlugin {
 
         structureManager = new DeathRealmStructureManager(this);
         structureManager.generate(deathWorld);
+
+        altarManager = new DeathRealmAltarManager(this);
 
         new DeathRealmBoundary(this, deathWorld).applyBoundary();
 
@@ -151,5 +155,9 @@ public final class DeathRealm extends JavaPlugin {
 
     public DeathRealmWarningTask getWarningTask() {
         return warningTask;
+    }
+
+    public DeathRealmAltarManager getAltarManager() {
+        return altarManager;
     }
 }
