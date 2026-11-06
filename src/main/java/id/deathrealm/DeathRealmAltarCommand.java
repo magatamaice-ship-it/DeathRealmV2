@@ -4,7 +4,6 @@ package id.deathrealm;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -59,90 +58,28 @@ public class DeathRealmAltarCommand implements CommandExecutor {
         switch (args[0].toLowerCase()) {
 
             case "bangkit":
+            case "intanhidup":
 
                 if (args.length != 2) {
                     player.sendMessage(
-                            "§cGunakan: /alamkacung bangkit <nama_pemain>"
+                            "§cGunakan: /alamkacung intanhidup <nama_pemain>"
                     );
                     return true;
                 }
 
-                Player target = Bukkit.getPlayerExact(args[1]);
+                resurrectPlayer(player, args[1]);
+                break;
 
-                if (target == null) {
+            case "skip":
+
+                if (args.length != 2) {
                     player.sendMessage(
-                            "§cPemain harus online untuk menggunakan command ini."
+                            "§cGunakan: /alamkacung skip <nama_pemain>"
                     );
                     return true;
                 }
 
-                DeathRealm plugin =
-                        JavaPlugin.getPlugin(DeathRealm.class);
-
-                if (!plugin.getTimerManager().hasTimer(
-                        target.getUniqueId()
-                )) {
-                    player.sendMessage(
-                            "§cPemain tersebut tidak sedang berada dalam status mati."
-                    );
-                    return true;
-                }
-
-                World mainWorld = null;
-
-                for (World world : Bukkit.getWorlds()) {
-                    if (!world.getName().equalsIgnoreCase("DeathRealm")) {
-                        mainWorld = world;
-                        break;
-                    }
-                }
-
-                if (mainWorld == null) {
-                    player.sendMessage(
-                            "§cDunia utama tidak ditemukan."
-                    );
-                    return true;
-                }
-
-                Location destination =
-                        mainWorld.getSpawnLocation();
-
-                if (!target.teleport(destination)) {
-                    player.sendMessage(
-                            "§cGagal memindahkan pemain."
-                    );
-                    return true;
-                }
-
-                plugin.getSoulFragmentDisplay().removeFragments(
-                        target.getUniqueId()
-                );
-
-                plugin.getSoulFragmentManager().resetTrial(
-                        target.getUniqueId()
-                );
-
-                plugin.getTimerManager().removeTimer(
-                        target.getUniqueId()
-                );
-
-                target.setGameMode(GameMode.SURVIVAL);
-                target.setFlying(false);
-                target.setAllowFlight(false);
-                target.setHealth(target.getMaxHealth());
-                target.setFoodLevel(20);
-                target.setSaturation(20);
-                target.setFallDistance(0);
-
-                player.sendMessage(
-                        "§aBerhasil membangkitkan §e"
-                                + target.getName() + "§a!"
-                );
-
-                target.sendMessage(
-                        "§aAdmin telah membangkitkanmu kembali ke dunia kehidupan!"
-                );
-
+                skipFirstStage(player, args[1]);
                 break;
 
             case "setpemanggilan":
@@ -334,6 +271,122 @@ public class DeathRealmAltarCommand implements CommandExecutor {
         return true;
     }
 
+    private void resurrectPlayer(Player admin, String targetName) {
+        Player target = Bukkit.getPlayerExact(targetName);
+
+        if (target == null) {
+            admin.sendMessage(
+                    "§cPemain harus online untuk menggunakan command ini."
+            );
+            return;
+        }
+
+        DeathRealm plugin =
+                JavaPlugin.getPlugin(DeathRealm.class);
+
+        if (!plugin.getTimerManager().hasTimer(target.getUniqueId())) {
+            admin.sendMessage(
+                    "§cPemain tersebut tidak sedang berada dalam status mati."
+            );
+            return;
+        }
+
+        World mainWorld = getMainWorld();
+
+        if (mainWorld == null) {
+            admin.sendMessage(
+                    "§cDunia utama tidak ditemukan."
+            );
+            return;
+        }
+
+        Location destination = mainWorld.getSpawnLocation();
+
+        if (!target.teleport(destination)) {
+            admin.sendMessage(
+                    "§cGagal memindahkan pemain."
+            );
+            return;
+        }
+
+        plugin.getSoulFragmentDisplay().removeFragments(
+                target.getUniqueId()
+        );
+
+        plugin.getSoulFragmentManager().resetTrial(
+                target.getUniqueId()
+        );
+
+        plugin.getTimerManager().removeTimer(
+                target.getUniqueId()
+        );
+
+        target.setGameMode(GameMode.SURVIVAL);
+        target.setFlying(false);
+        target.setAllowFlight(false);
+        target.setHealth(target.getMaxHealth());
+        target.setFoodLevel(20);
+        target.setSaturation(20);
+        target.setFallDistance(0);
+
+        admin.sendMessage(
+                "§aBerhasil membangkitkan §e"
+                        + target.getName() + "§a!"
+        );
+
+        target.sendMessage(
+                "§aAdmin telah membangkitkanmu kembali ke dunia kehidupan!"
+        );
+    }
+
+    private void skipFirstStage(Player admin, String targetName) {
+        Player target = Bukkit.getPlayerExact(targetName);
+
+        if (target == null) {
+            admin.sendMessage(
+                    "§cPemain harus online untuk menggunakan command ini."
+            );
+            return;
+        }
+
+        DeathRealm plugin =
+                JavaPlugin.getPlugin(DeathRealm.class);
+
+        if (!plugin.getTimerManager().hasTimer(target.getUniqueId())) {
+            admin.sendMessage(
+                    "§cPemain tersebut tidak sedang berada dalam status mati."
+            );
+            return;
+        }
+
+        plugin.getTimerManager().unlockTrial(target.getUniqueId());
+
+        admin.sendMessage(
+                "§aTahap 1 berhasil dilewati untuk §e"
+                        + target.getName() + "§a."
+        );
+
+        target.sendMessage(
+                "§6§lTAHAP 1 DILEWATI!"
+        );
+
+        target.sendMessage(
+                "§eAdmin telah membuka Tahap 2. Mulailah pencarian Soul Fragment!"
+        );
+
+        plugin.getSoulFragmentMenu().openMenu(target);
+    }
+
+    private World getMainWorld() {
+        for (World world : Bukkit.getWorlds()) {
+            if (!world.getName().equalsIgnoreCase("DeathRealm")) {
+                return world;
+            }
+        }
+
+        return null;
+    }
+
     private boolean isDeathRealm(Location location) {
         return location.getWorld() != null
                 && location.getWorld().getName()
@@ -343,6 +396,8 @@ public class DeathRealmAltarCommand implements CommandExecutor {
     private void sendHelp(Player player) {
         player.sendMessage("§6§lPENGATURAN ALAMKACUNG");
         player.sendMessage("§e/alamkacung bangkit <nama_pemain>");
+        player.sendMessage("§e/alamkacung intanhidup <nama_pemain>");
+        player.sendMessage("§e/alamkacung skip <nama_pemain>");
         player.sendMessage("§e/alamkacung setpemanggilan");
         player.sendMessage("§e/alamkacung setkelahiran");
         player.sendMessage("§e/alamkacung setportalmasuk");
