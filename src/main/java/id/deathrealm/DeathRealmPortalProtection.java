@@ -51,13 +51,24 @@ public class DeathRealmPortalProtection implements Listener {
 
         UUID uuid = player.getUniqueId();
 
-        if (plugin.getTimerManager().hasTimer(uuid)
-                || teleportCooldown.contains(uuid)) {
+        Location entry = plugin.getPortalManager().getPortalEntry();
+        Location exit = plugin.getPortalManager().getPortalExit();
+
+        if (teleportCooldown.contains(uuid)) {
+
+            boolean insideEntry = isInsidePortalArea(event.getTo(), entry);
+            boolean insideExit = isInsidePortalArea(event.getTo(), exit);
+
+            if (!insideEntry && !insideExit) {
+                teleportCooldown.remove(uuid);
+            }
+
             return;
         }
 
-        Location entry = plugin.getPortalManager().getPortalEntry();
-        Location exit = plugin.getPortalManager().getPortalExit();
+        if (plugin.getTimerManager().hasTimer(uuid)) {
+            return;
+        }
 
         Location destination = null;
 
@@ -73,13 +84,11 @@ public class DeathRealmPortalProtection implements Listener {
 
         teleportCooldown.add(uuid);
 
-        player.teleport(destination.clone());
+        boolean success = player.teleport(destination.clone());
 
-        plugin.getServer().getScheduler().runTaskLater(
-                plugin,
-                () -> teleportCooldown.remove(uuid),
-                40L
-        );
+        if (!success) {
+            teleportCooldown.remove(uuid);
+        }
     }
 
     private boolean isInsidePortalArea(
