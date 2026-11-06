@@ -9,9 +9,14 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
 public class DeathRealmPortalProtection implements Listener {
 
     private final DeathRealm plugin;
+    private final Set<UUID> teleportCooldown = new HashSet<>();
 
     public DeathRealmPortalProtection(DeathRealm plugin) {
         this.plugin = plugin;
@@ -36,33 +41,43 @@ public class DeathRealmPortalProtection implements Listener {
             return;
         }
 
-        if (plugin.getTimerManager().hasTimer(
-                player.getUniqueId()
-        )) {
+        if (event.getFrom().getBlockX() == event.getTo().getBlockX()
+                && event.getFrom().getBlockY() == event.getTo().getBlockY()
+                && event.getFrom().getBlockZ() == event.getTo().getBlockZ()) {
             return;
         }
+
+        UUID uuid = player.getUniqueId();
+
+        if (plugin.getTimerManager().hasTimer(uuid)
+                || teleportCooldown.contains(uuid)) {
+            return;
+        }
+
+        Location entry = plugin.getPortalManager().getPortalEntry();
+        Location exit = plugin.getPortalManager().getPortalExit();
 
         Location destination = null;
 
-        if (isPortalLocation(
-                event.getTo(),
-                plugin.getPortalManager().getPortalEntry()
-        )) {
-            destination = plugin.getPortalManager().getPortalExit();
-        } else if (isPortalLocation(
-                event.getTo(),
-                plugin.getPortalManager().getPortalExit()
-        )) {
-            destination = getMainWorldSpawn();
+        if (isPortalLocation(event.getTo(), entry)) {
+            destination = exit;
+        } else if (isPortalLocation(event.getTo(), exit)) {
+            destination = entry;
         }
 
-        if (destination == null) {
+        if (destination == null || destination.getWorld() == null) {
             return;
         }
 
-        Location finalDestination = destination.clone();
+        teleportCooldown.add(uuid);
 
-        player.teleportAsync(finalDestination);
+        player.teleport(destination.clone());
+
+        plugin.getServer().getScheduler().runTaskLater(
+                plugin,
+                () -> teleportCooldown.remove(uuid),
+                40L
+        );
     }
 
     private boolean isPortalLocation(
@@ -79,21 +94,5 @@ public class DeathRealmPortalProtection implements Listener {
                 && playerLocation.getBlockX() == portalLocation.getBlockX()
                 && playerLocation.getBlockY() == portalLocation.getBlockY()
                 && playerLocation.getBlockZ() == portalLocation.getBlockZ();
-    }
-
-    private Location getMainWorldSpawn() {
-        Location portalExit = plugin.getPortalManager().getPortalExit();
-
-        if (portalExit == null) {
-            return null;
-        }
-
-        for (org.bukkit.World world : plugin.getServer().getWorlds()) {
-            if (!world.getName().equalsIgnoreCase("DeathRealm")) {
-                return world.getSpawnLocation();
-            }
-        }
-
-        return null;
     }
 }
