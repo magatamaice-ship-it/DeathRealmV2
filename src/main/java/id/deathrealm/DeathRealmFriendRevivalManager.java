@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,11 +41,17 @@ public class DeathRealmFriendRevivalManager implements Listener {
     private final Set<UUID> pendingInProgress = new HashSet<>();
     private final Set<UUID> finishingRevival = new HashSet<>();
 
+    // Data pengembalian item disimpan berdasarkan UUID target ritual.
+    private final Map<UUID, RefundData> pendingRefunds = new HashMap<>();
+
     private DeathRealmResurrection resurrection;
 
     public DeathRealmFriendRevivalManager(DeathRealm plugin) {
         this.plugin = plugin;
-        this.file = new File(plugin.getDataFolder(), "revival-requirements.yml");
+        this.file = new File(
+                plugin.getDataFolder(),
+                "revival-requirements.yml"
+        );
         load();
     }
 
@@ -84,12 +91,14 @@ public class DeathRealmFriendRevivalManager implements Listener {
     }
 
     public boolean hasRequirements(Player player) {
-        if (player == null || !player.isOnline() || requirements.isEmpty()) {
+        if (player == null || !player.isOnline()
+                || requirements.isEmpty()) {
             return false;
         }
 
         for (Requirement requirement : requirements) {
-            if (countItem(player, requirement.getItem()) < requirement.getAmount()) {
+            if (countItem(player, requirement.getItem())
+                    < requirement.getAmount()) {
                 return false;
             }
         }
@@ -101,7 +110,11 @@ public class DeathRealmFriendRevivalManager implements Listener {
         if (!hasRequirements(player)) return false;
 
         for (Requirement requirement : requirements) {
-            removeItems(player, requirement.getItem(), requirement.getAmount());
+            removeItems(
+                    player,
+                    requirement.getItem(),
+                    requirement.getAmount()
+            );
         }
 
         player.updateInventory();
@@ -136,6 +149,7 @@ public class DeathRealmFriendRevivalManager implements Listener {
                 || pendingInProgress.contains(targetId)
                 || finishingRevival.contains(targetId)
                 || activeRituals.containsKey(targetId)
+                || pendingRefunds.containsKey(targetId)
                 || plugin.getSoulFragmentRitual().isRitualActive(targetId)
                 || !hasRequirements(initiator)
                 || resurrection == null) {
@@ -145,13 +159,27 @@ public class DeathRealmFriendRevivalManager implements Listener {
         Location altar = plugin.getAltarManager().getSummoningAltar();
 
         if (altar == null || altar.getWorld() == null) {
-            initiator.sendMessage("§cLokasi Altar Pemanggilan belum diatur.");
+            initiator.sendMessage(
+                    "§cLokasi Altar Pemanggilan belum diatur."
+            );
             return false;
         }
 
+        // Simpan salinan persyaratan sebelum item dikonsumsi.
+        List<ItemStack> refundItems = createRefundItems();
+
         if (!consumeRequirements(initiator)) return false;
 
-        initiator.sendMessage("§6Ritual kebangkitan dimulai. Waktu: 3 menit.");
+        // Catat pengembalian agar tetap ada setelah server restart.
+        pendingRefunds.put(
+                targetId,
+                new RefundData(initiator.getUniqueId(), refundItems)
+        );
+        save();
+
+        initiator.sendMessage(
+                "§6Ritual kebangkitan dimulai. Waktu: 3 menit."
+        );
 
         final int[] elapsed = {0};
 
@@ -178,7 +206,8 @@ public class DeathRealmFriendRevivalManager implements Listener {
 
                     playRitualEffects(altar, elapsed[0]);
 
-                    if (elapsed[0] % 30 == 0 && initiator.isOnline()) {
+                    if (elapsed[0] % 30 == 0
+                            && initiator.isOnline()) {
                         int remaining = RITUAL_SECONDS - elapsed[0];
 
                         initiator.sendMessage(
@@ -199,6 +228,30 @@ public class DeathRealmFriendRevivalManager implements Listener {
         return true;
     }
 
+    private List<ItemStack> createRefundItems() {
+        List<ItemStack> items = new ArrayList<>();
+
+        for (Requirement requirement : requirements) {
+            ItemStack template = requirement.getItem();
+            int remaining = requirement.getAmount();
+
+            while (remaining > 0) {
+                int amount = Math.min(
+                        remaining,
+                        template.getMaxStackSize()
+                );
+
+                ItemStack refund = template.clone();
+                refund.setAmount(amount);
+
+                items.add(refund);
+                remaining -= amount;
+            }
+        }
+
+        return items;
+    }
+
     private void finishRitual(Player initiator, UUID targetId) {
         BukkitTask task = activeRituals.remove(targetId);
 
@@ -206,6 +259,7 @@ public class DeathRealmFriendRevivalManager implements Listener {
 
         if (!canRevive(targetId)
                 || !finishingRevival.add(targetId)) {
+            refundForTarget(targetId);
             return;
         }
 
@@ -216,13 +270,19 @@ public class DeathRealmFriendRevivalManager implements Listener {
                 finishingRevival.remove(targetId);
 
                 if (!success) {
+                    refundForTarget(targetId);
+
                     if (initiator.isOnline()) {
                         initiator.sendMessage(
-                                "§cKebangkitan target gagal diselesaikan."
+                                "§cKebangkitan target gagal diselesaikan. Item persyaratan dikembalikan."
                         );
                     }
                     return;
                 }
+
+                // Ritual berhasil, item tetap dikonsumsi.
+                pendingRefunds.remove(targetId);
+                save();
 
                 plugin.getSoulFragmentRitual().cancelRitual(targetId);
 
@@ -239,6 +299,11 @@ public class DeathRealmFriendRevivalManager implements Listener {
         cleanupOfflineTarget(targetId);
 
         pendingRevival.add(targetId);
+
+        // Kebangkitan offline berhasil dijadwalkan.
+        // Persyaratan tetap dianggap terpakai.
+        pendingRefunds.remove(targetId);
+
         finishingRevival.remove(targetId);
         save();
 
@@ -260,10 +325,61 @@ public class DeathRealmFriendRevivalManager implements Listener {
         BukkitTask task = activeRituals.remove(targetId);
 
         if (task != null) task.cancel();
+
+        refundForTarget(targetId);
     }
 
     private void cancelRitual(UUID targetId) {
         cancelRitualForTarget(targetId);
+    }
+
+    private void refundForTarget(UUID targetId) {
+        if (targetId == null) return;
+
+        RefundData refund = pendingRefunds.get(targetId);
+
+        if (refund == null) return;
+
+        Player initiator = Bukkit.getPlayer(refund.initiatorId);
+
+        // Jika penginisiasi offline, simpan sampai ia masuk kembali.
+        if (initiator == null || !initiator.isOnline()) {
+            save();
+            return;
+        }
+
+        giveItems(initiator, refund.items);
+
+        pendingRefunds.remove(targetId);
+        save();
+
+        initiator.sendMessage(
+                "§aItem persyaratan ritual yang dibatalkan telah dikembalikan."
+        );
+    }
+
+    private void giveItems(Player player, List<ItemStack> items) {
+        for (ItemStack original : items) {
+            if (original == null || original.getType() == Material.AIR) {
+                continue;
+            }
+
+            Map<Integer, ItemStack> leftovers =
+                    player.getInventory().addItem(original.clone());
+
+            for (ItemStack leftover : leftovers.values()) {
+                Location location = player.getLocation();
+
+                if (location.getWorld() != null) {
+                    location.getWorld().dropItemNaturally(
+                            location,
+                            leftover
+                    );
+                }
+            }
+        }
+
+        player.updateInventory();
     }
 
     private void playRitualEffects(Location altar, int elapsed) {
@@ -271,20 +387,25 @@ public class DeathRealmFriendRevivalManager implements Listener {
         Location center = altar.clone().add(0.5, 1.2, 0.5);
 
         altar.getWorld().spawnParticle(
-                Particle.SOUL, center, 4 + stage * 3,
+                Particle.SOUL,
+                center,
+                4 + stage * 3,
                 0.6, 0.5, 0.6, 0.03
         );
 
         if (elapsed % 3 == 0) {
             altar.getWorld().spawnParticle(
-                    Particle.END_ROD, center, 2 + stage * 2,
+                    Particle.END_ROD,
+                    center,
+                    2 + stage * 2,
                     0.8, 0.8, 0.8, 0.02
             );
         }
 
         if (elapsed % 10 == 0) {
             altar.getWorld().playSound(
-                    center, Sound.BLOCK_BEACON_AMBIENT,
+                    center,
+                    Sound.BLOCK_BEACON_AMBIENT,
                     0.5f + stage * 0.2f,
                     0.7f + stage * 0.15f
             );
@@ -292,13 +413,17 @@ public class DeathRealmFriendRevivalManager implements Listener {
 
         if (elapsed == 150 || elapsed == 180) {
             altar.getWorld().spawnParticle(
-                    Particle.PORTAL, center, 80,
+                    Particle.PORTAL,
+                    center,
+                    80,
                     1.5, 1.5, 1.5, 0.5
             );
 
             altar.getWorld().playSound(
-                    center, Sound.BLOCK_END_PORTAL_SPAWN,
-                    1.0f, 1.0f
+                    center,
+                    Sound.BLOCK_END_PORTAL_SPAWN,
+                    1.0f,
+                    1.0f
             );
         }
     }
@@ -307,6 +432,10 @@ public class DeathRealmFriendRevivalManager implements Listener {
     public void onTargetJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
+
+        // Kembalikan item milik pemain yang memulai ritual
+        // dan belum menerima pengembalian karena offline.
+        refundForInitiator(uuid);
 
         if (!pendingRevival.contains(uuid)
                 || !pendingInProgress.add(uuid)) {
@@ -345,10 +474,43 @@ public class DeathRealmFriendRevivalManager implements Listener {
         });
     }
 
+    private void refundForInitiator(UUID initiatorId) {
+        if (initiatorId == null) return;
+
+        Player player = Bukkit.getPlayer(initiatorId);
+
+        if (player == null || !player.isOnline()) return;
+
+        List<UUID> completedRefunds = new ArrayList<>();
+
+        for (Map.Entry<UUID, RefundData> entry :
+                pendingRefunds.entrySet()) {
+
+            if (entry.getValue().initiatorId.equals(initiatorId)) {
+                giveItems(player, entry.getValue().items);
+                completedRefunds.add(entry.getKey());
+            }
+        }
+
+        if (!completedRefunds.isEmpty()) {
+            for (UUID targetId : completedRefunds) {
+                pendingRefunds.remove(targetId);
+            }
+
+            save();
+
+            player.sendMessage(
+                    "§aItem persyaratan dari ritual yang dibatalkan telah dikembalikan."
+            );
+        }
+    }
+
     private int countItem(Player player, ItemStack template) {
         int total = 0;
 
-        for (ItemStack item : player.getInventory().getStorageContents()) {
+        for (ItemStack item :
+                player.getInventory().getStorageContents()) {
+
             if (item != null && item.isSimilar(template)) {
                 total += item.getAmount();
             }
@@ -357,7 +519,11 @@ public class DeathRealmFriendRevivalManager implements Listener {
         return total;
     }
 
-    private void removeItems(Player player, ItemStack template, int amount) {
+    private void removeItems(
+            Player player,
+            ItemStack template,
+            int amount
+    ) {
         int remaining = amount;
 
         for (int slot = 0;
@@ -394,19 +560,44 @@ public class DeathRealmFriendRevivalManager implements Listener {
         for (int i = 0; i < requirements.size(); i++) {
             Requirement requirement = requirements.get(i);
 
-            config.set("requirements." + i + ".item", requirement.getItem());
-            config.set("requirements." + i + ".amount", requirement.getAmount());
+            config.set(
+                    "requirements." + i + ".item",
+                    requirement.getItem()
+            );
+
+            config.set(
+                    "requirements." + i + ".amount",
+                    requirement.getAmount()
+            );
         }
 
         for (UUID uuid : pendingRevival) {
             config.set("pending." + uuid, true);
         }
 
+        for (Map.Entry<UUID, RefundData> entry :
+                pendingRefunds.entrySet()) {
+
+            String path = "refunds." + entry.getKey();
+
+            config.set(
+                    path + ".initiator",
+                    entry.getValue().initiatorId.toString()
+            );
+
+            for (int i = 0; i < entry.getValue().items.size(); i++) {
+                config.set(
+                        path + ".items." + i,
+                        entry.getValue().items.get(i)
+                );
+            }
+        }
+
         try {
             config.save(file);
         } catch (IOException exception) {
             plugin.getLogger().severe(
-                    "Gagal menyimpan persyaratan ritual: "
+                    "Gagal menyimpan data ritual: "
                             + exception.getMessage()
             );
         }
@@ -415,7 +606,8 @@ public class DeathRealmFriendRevivalManager implements Listener {
     private void load() {
         if (!file.exists()) return;
 
-        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+        YamlConfiguration config =
+                YamlConfiguration.loadConfiguration(file);
 
         ConfigurationSection section =
                 config.getConfigurationSection("requirements");
@@ -430,8 +622,11 @@ public class DeathRealmFriendRevivalManager implements Listener {
                         "requirements." + key + ".amount"
                 );
 
-                if (item == null || item.getType() == Material.AIR
-                        || amount <= 0) continue;
+                if (item == null
+                        || item.getType() == Material.AIR
+                        || amount <= 0) {
+                    continue;
+                }
 
                 item.setAmount(1);
                 requirements.add(new Requirement(item, amount));
@@ -457,46 +652,15 @@ public class DeathRealmFriendRevivalManager implements Listener {
             }
         }
 
-        plugin.getLogger().info(
-                "Berhasil memuat " + requirements.size()
-                        + " persyaratan dan "
-                        + pendingRevival.size()
-                        + " kebangkitan tertunda."
-        );
-    }
+        ConfigurationSection refunds =
+                config.getConfigurationSection("refunds");
 
-    public void stop() {
-        for (BukkitTask task : activeRituals.values()) {
-            if (task != null) task.cancel();
-        }
+        if (refunds != null) {
+            for (String targetKey : refunds.getKeys(false)) {
+                try {
+                    UUID targetId = UUID.fromString(targetKey);
 
-        activeRituals.clear();
-        pendingInProgress.clear();
-        finishingRevival.clear();
-
-        save();
-
-        plugin.getLogger().info(
-                "Friend Revival Manager berhasil dihentikan."
-        );
-    }
-
-    public static class Requirement {
-        private final ItemStack item;
-        private final int amount;
-
-        public Requirement(ItemStack item, int amount) {
-            this.item = item.clone();
-            this.item.setAmount(1);
-            this.amount = amount;
-        }
-
-        public ItemStack getItem() {
-            return item.clone();
-        }
-
-        public int getAmount() {
-            return amount;
-        }
-    }
-}
+                    String initiatorValue =
+                            refunds.getString(
+                                    targetKey + ".initiator"
+                      
