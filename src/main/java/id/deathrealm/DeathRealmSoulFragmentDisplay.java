@@ -16,6 +16,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -46,6 +47,7 @@ public class DeathRealmSoulFragmentDisplay {
 
     public void spawnFragments(UUID owner, String ownerName) {
         if (!fragmentManager.isTrialActive(owner)) {
+            removeFragments(owner);
             return;
         }
 
@@ -61,6 +63,8 @@ public class DeathRealmSoulFragmentDisplay {
 
         removeFragments(owner);
 
+        boolean hasUncollected = false;
+
         for (int i = 0; i < locations.size(); i++) {
             if (fragmentManager.hasCollected(owner, i)) {
                 continue;
@@ -73,10 +77,13 @@ public class DeathRealmSoulFragmentDisplay {
             }
 
             spawnSingleFragment(owner, ownerName, i, location);
+            hasUncollected = true;
         }
 
-        activeLocations.put(owner, locations);
-        startParticleTask();
+        if (hasUncollected) {
+            activeLocations.put(owner, locations);
+            startParticleTask();
+        }
     }
 
     private void spawnSingleFragment(
@@ -87,35 +94,28 @@ public class DeathRealmSoulFragmentDisplay {
     ) {
         removeExistingFragment(owner, index, location);
 
-        Location itemLocation = location.clone();
-
         ItemDisplay item = location.getWorld().spawn(
-                itemLocation,
+                location.clone(),
                 ItemDisplay.class
         );
 
         item.setItemStack(
                 new ItemStack(Material.AMETHYST_SHARD)
         );
-
         item.setBillboard(Display.Billboard.CENTER);
         item.setGravity(false);
         item.setInvulnerable(true);
 
         setIdentity(item, owner, index);
 
-        Location nameLocation = location.clone().add(0, 1.1, 0);
-
         TextDisplay name = location.getWorld().spawn(
-                nameLocation,
+                location.clone().add(0, 1.1, 0),
                 TextDisplay.class
         );
 
         name.setText(
-                "§d§lFragmen Jiwa\n"
-                + "§7Milik: §f" + ownerName
+                "§d§lFragmen Jiwa\n§7Milik: §f" + ownerName
         );
-
         name.setBillboard(Display.Billboard.CENTER);
         name.setSeeThrough(true);
         name.setShadowed(true);
@@ -163,9 +163,7 @@ public class DeathRealmSoulFragmentDisplay {
             return;
         }
 
-        for (Entity entity :
-                location.getChunk().getEntities()) {
-
+        for (Entity entity : location.getChunk().getEntities()) {
             String savedOwner =
                     entity.getPersistentDataContainer().get(
                             ownerKey,
@@ -210,24 +208,34 @@ public class DeathRealmSoulFragmentDisplay {
         }
 
         activeLocations.remove(owner);
+        stopParticleTaskIfIdle();
     }
 
     private void startParticleTask() {
-        if (particleTask != null) {
+        if (particleTask != null && !particleTask.isCancelled()) {
             return;
         }
 
         particleTask = Bukkit.getScheduler().runTaskTimer(
                 plugin,
                 () -> {
-                    for (Map.Entry<UUID, List<Location>> entry :
-                            activeLocations.entrySet()) {
+                    Iterator<Map.Entry<UUID, List<Location>>> iterator =
+                            activeLocations.entrySet().iterator();
+
+                    while (iterator.hasNext()) {
+                        Map.Entry<UUID, List<Location>> entry =
+                                iterator.next();
 
                         UUID owner = entry.getKey();
 
-                        for (int i = 0;
-                             i < entry.getValue().size(); i++) {
+                        if (!fragmentManager.isTrialActive(owner)) {
+                            iterator.remove();
+                            continue;
+                        }
 
+                        boolean hasUncollected = false;
+
+                        for (int i = 0; i < entry.getValue().size(); i++) {
                             if (fragmentManager.hasCollected(owner, i)) {
                                 continue;
                             }
@@ -237,6 +245,8 @@ public class DeathRealmSoulFragmentDisplay {
                             if (base.getWorld() == null) {
                                 continue;
                             }
+
+                            hasUncollected = true;
 
                             for (double y = 0.3; y <= 3.0; y += 0.3) {
                                 base.getWorld().spawnParticle(
@@ -252,11 +262,28 @@ public class DeathRealmSoulFragmentDisplay {
                                 );
                             }
                         }
+
+                        if (!hasUncollected) {
+                            iterator.remove();
+                        }
                     }
+
+                    stopParticleTaskIfIdle();
                 },
                 1L,
                 10L
         );
+    }
+
+    private void stopParticleTaskIfIdle() {
+        if (!activeLocations.isEmpty()) {
+            return;
+        }
+
+        if (particleTask != null) {
+            particleTask.cancel();
+            particleTask = null;
+        }
     }
 
     public void stop() {
@@ -267,4 +294,4 @@ public class DeathRealmSoulFragmentDisplay {
 
         activeLocations.clear();
     }
-          }
+}
