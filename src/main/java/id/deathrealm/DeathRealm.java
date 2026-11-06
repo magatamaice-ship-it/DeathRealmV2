@@ -229,6 +229,10 @@ public final class DeathRealm extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (friendRevivalManager != null) {
+            friendRevivalManager.stop();
+        }
+
         if (timerTask != null) timerTask.stop();
         if (bossBar != null) bossBar.stop();
         if (coordinateDisplay != null) coordinateDisplay.stop();
@@ -247,7 +251,9 @@ public final class DeathRealm extends JavaPlugin {
             soulFragmentDisplay.stop();
         }
 
-        if (timerManager != null) timerManager.saveTimers();
+        if (timerManager != null) {
+            timerManager.saveTimers();
+        }
 
         if (soulFragmentManager != null) {
             soulFragmentManager.save();
