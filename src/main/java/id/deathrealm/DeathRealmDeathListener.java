@@ -9,6 +9,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 
 import java.util.HashSet;
@@ -56,13 +57,10 @@ public class DeathRealmDeathListener implements Listener {
             return;
         }
 
-        // Hapus tampilan fragmen lama terlebih dahulu.
         plugin.getSoulFragmentDisplay().removeFragments(uuid);
 
-        // Hapus lokasi dan progres pencarian fragmen.
         plugin.getSoulFragmentManager().resetTrial(uuid);
 
-        // Mulai siklus kematian baru selama 25 menit.
         timerManager.startTimer(uuid);
 
         pendingPlayers.add(uuid);
@@ -130,5 +128,12 @@ public class DeathRealmDeathListener implements Listener {
                 visibility.refreshAll();
             });
         });
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        pendingPlayers.remove(
+                event.getPlayer().getUniqueId()
+        );
     }
 }
