@@ -15,32 +15,24 @@ public class DeathRealmCamera {
     }
 
     public void play(Player player, Runnable onComplete) {
+        if (player == null || !player.isOnline()) {
+            onComplete.run();
+            return;
+        }
+
         Location start = player.getLocation().clone();
-
-        float originalWalkSpeed = player.getWalkSpeed();
-        float originalFlySpeed = player.getFlySpeed();
-        boolean originalInvulnerable = player.isInvulnerable();
-
-        player.setInvulnerable(true);
-        player.setWalkSpeed(0);
-        player.setFlySpeed(0);
 
         new BukkitRunnable() {
             private int tick = 0;
             private boolean completed = false;
 
             private void finish() {
-                if (completed) {
-                    return;
-                }
+                if (completed) return;
 
                 completed = true;
 
                 if (player.isOnline()) {
                     player.teleport(start);
-                    player.setWalkSpeed(originalWalkSpeed);
-                    player.setFlySpeed(originalFlySpeed);
-                    player.setInvulnerable(originalInvulnerable);
                 }
 
                 onComplete.run();
