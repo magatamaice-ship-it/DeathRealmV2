@@ -24,6 +24,7 @@ public final class DeathRealm extends JavaPlugin {
     private DeathRealmWarningTask warningTask;
     private DeathRealmAltarManager altarManager;
     private DeathRealmPortalManager portalManager;
+    private DeathRealmFriendRevivalManager friendRevivalManager;
 
     @Override
     public void onEnable() {
@@ -32,6 +33,7 @@ public final class DeathRealm extends JavaPlugin {
         getLogger().info("Memulai DeathRealmV2...");
 
         timerManager = new DeathTimerManager(this);
+        friendRevivalManager = new DeathRealmFriendRevivalManager(this);
 
         worldManager = new DeathRealmWorld(this);
         worldManager.createWorld();
@@ -132,7 +134,8 @@ public final class DeathRealm extends JavaPlugin {
             getCommand("alamkacung").setExecutor(
                     new DeathRealmAltarCommand(
                             altarManager,
-                            portalManager
+                            portalManager,
+                            friendRevivalManager
                     )
             );
         }
@@ -178,5 +181,9 @@ public final class DeathRealm extends JavaPlugin {
 
     public DeathRealmPortalManager getPortalManager() {
         return portalManager;
+    }
+
+    public DeathRealmFriendRevivalManager getFriendRevivalManager() {
+        return friendRevivalManager;
     }
 }
