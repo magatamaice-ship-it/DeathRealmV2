@@ -71,7 +71,17 @@ public class DeathRealmResurrection {
                 return;
             }
 
+            if (!timerManager.hasTimer(uuid)) {
+                resurrecting.remove(uuid);
+                return;
+            }
+
             if (finalDestination.getWorld() == null) {
+                plugin.getLogger().severe(
+                        "Dunia tujuan kebangkitan tidak tersedia untuk "
+                        + player.getName()
+                );
+
                 resurrecting.remove(uuid);
                 return;
             }
@@ -93,17 +103,19 @@ public class DeathRealmResurrection {
                 return;
             }
 
-            // Hapus tampilan fragmen sebelum data lokasinya dihapus.
+            // Bersihkan tampilan fragmen.
             plugin.getSoulFragmentDisplay().removeFragments(uuid);
 
             // Hapus seluruh progres dan lokasi ujian lama.
             plugin.getSoulFragmentManager().resetTrial(uuid);
 
-            // Hapus timer kematian dan siklus ujian.
+            // Hapus timer kematian.
             timerManager.removeTimer(uuid);
 
+            // Sembunyikan BossBar kematian.
             bossBar.hide(player);
 
+            // Pulihkan kondisi pemain.
             player.setFlying(false);
             player.setAllowFlight(false);
             player.setGameMode(GameMode.SURVIVAL);
@@ -115,9 +127,11 @@ public class DeathRealmResurrection {
             plugin.getMessages().sendResurrectionMessage(player);
 
             resurrecting.remove(uuid);
+
+            // Perbarui visibilitas seluruh pemain.
             visibility.refreshAll();
         });
-
+        
         return true;
     }
 
