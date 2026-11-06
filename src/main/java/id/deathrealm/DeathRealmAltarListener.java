@@ -2,7 +2,6 @@
 package id.deathrealm;
 
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -15,6 +14,7 @@ public class DeathRealmAltarListener implements Listener {
 
     private final DeathRealm plugin;
     private final DeathRealmAltarManager altarManager;
+    private final DeathRealmRevivalMenu revivalMenu;
 
     public DeathRealmAltarListener(
             DeathRealm plugin,
@@ -22,6 +22,12 @@ public class DeathRealmAltarListener implements Listener {
     ) {
         this.plugin = plugin;
         this.altarManager = altarManager;
+        this.revivalMenu = new DeathRealmRevivalMenu(plugin);
+
+        plugin.getServer().getPluginManager().registerEvents(
+                revivalMenu,
+                plugin
+        );
     }
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -42,13 +48,8 @@ public class DeathRealmAltarListener implements Listener {
         if (altarManager.isSummoningAltar(location)) {
             event.setCancelled(true);
 
-            player.sendMessage(
-                    "§6§lALTAR PEMANGGILAN"
-            );
-
-            player.sendMessage(
-                    "§7Altar terdeteksi. Sistem ritual kebangkitan sedang disiapkan."
-            );
+            player.sendMessage("§6§lALTAR PEMANGGILAN");
+            revivalMenu.openMenu(player, 0);
 
             return;
         }
@@ -56,12 +57,10 @@ public class DeathRealmAltarListener implements Listener {
         if (altarManager.isRebirthAltar(location)) {
             event.setCancelled(true);
 
-            player.sendMessage(
-                    "§5§lALTAR KELAHIRAN"
-            );
+            player.sendMessage("§5§lALTAR KELAHIRAN");
 
             player.sendMessage(
-                    "§7Altar terdeteksi. Periksa tiga Fragmen Jiwa untuk ritual kebangkitan."
+                    "§7Periksa tiga Fragmen Jiwa untuk ritual kebangkitan."
             );
         }
     }
