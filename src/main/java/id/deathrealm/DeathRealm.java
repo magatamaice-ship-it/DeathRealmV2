@@ -28,6 +28,8 @@ public final class DeathRealm extends JavaPlugin {
 
     private DeathRealmSoulFragmentManager soulFragmentManager;
     private DeathRealmSoulFragmentMenu soulFragmentMenu;
+    private DeathRealmSoulFragmentDisplay soulFragmentDisplay;
+    private DeathRealmSoulFragmentListener soulFragmentListener;
 
     @Override
     public void onEnable() {
@@ -80,10 +82,23 @@ public final class DeathRealm extends JavaPlugin {
         soulFragmentManager =
                 new DeathRealmSoulFragmentManager(this);
 
+        soulFragmentDisplay =
+                new DeathRealmSoulFragmentDisplay(
+                        this,
+                        soulFragmentManager
+                );
+
         soulFragmentMenu =
                 new DeathRealmSoulFragmentMenu(
                         this,
                         soulFragmentManager
+                );
+
+        soulFragmentListener =
+                new DeathRealmSoulFragmentListener(
+                        this,
+                        soulFragmentManager,
+                        soulFragmentDisplay
                 );
 
         timerTask = new DeathRealmTimerTask(
@@ -102,6 +117,10 @@ public final class DeathRealm extends JavaPlugin {
 
         Bukkit.getPluginManager().registerEvents(
                 soulFragmentMenu, this
+        );
+
+        Bukkit.getPluginManager().registerEvents(
+                soulFragmentListener, this
         );
 
         Bukkit.getPluginManager().registerEvents(
@@ -186,8 +205,20 @@ public final class DeathRealm extends JavaPlugin {
         if (coordinateDisplay != null) coordinateDisplay.stop();
         if (atmosphere != null) atmosphere.stop();
         if (warningTask != null) warningTask.stop();
+
+        if (soulFragmentListener != null) {
+            soulFragmentListener.stop();
+        }
+
+        if (soulFragmentDisplay != null) {
+            soulFragmentDisplay.stop();
+        }
+
         if (timerManager != null) timerManager.saveTimers();
-        if (soulFragmentManager != null) soulFragmentManager.save();
+
+        if (soulFragmentManager != null) {
+            soulFragmentManager.save();
+        }
 
         instance = null;
 
@@ -228,5 +259,9 @@ public final class DeathRealm extends JavaPlugin {
 
     public DeathRealmSoulFragmentMenu getSoulFragmentMenu() {
         return soulFragmentMenu;
+    }
+
+    public DeathRealmSoulFragmentDisplay getSoulFragmentDisplay() {
+        return soulFragmentDisplay;
     }
 }
