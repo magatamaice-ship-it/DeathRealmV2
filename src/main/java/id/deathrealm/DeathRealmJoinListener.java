@@ -1,3 +1,4 @@
+
 package id.deathrealm;
 
 import org.bukkit.Bukkit;
@@ -52,11 +53,6 @@ public class DeathRealmJoinListener implements Listener {
                 return;
             }
 
-            if (timerManager.isExpired(player.getUniqueId())) {
-                resurrection.resurrect(player);
-                return;
-            }
-
             World deathWorld = worldManager.getWorld();
 
             if (deathWorld == null) {
@@ -89,17 +85,31 @@ public class DeathRealmJoinListener implements Listener {
 
             protection.preparePlayer(player);
 
-            bossBar.show(player);
+            if (timerManager.isExpired(player.getUniqueId())) {
+                timerManager.unlockTrial(player.getUniqueId());
 
-            entryEffect.play(player);
+                player.sendTitle(
+                        "§5UJIAN KEBANGKITAN",
+                        "§dUjianmu telah terbuka",
+                        10,
+                        70,
+                        20
+                );
 
-            plugin.getMessages().sendEntryMessage(player);
+                player.sendMessage(
+                        "§5[ALAMKACUNG] §dUjian kebangkitanmu telah terbuka!"
+                );
+            } else {
+                bossBar.show(player);
+                entryEffect.play(player);
+                plugin.getMessages().sendEntryMessage(player);
 
-            DeathRealmWarningTask warningTask =
-                    plugin.getWarningTask();
+                DeathRealmWarningTask warningTask =
+                        plugin.getWarningTask();
 
-            if (warningTask != null) {
-                warningTask.checkPlayer(player);
+                if (warningTask != null) {
+                    warningTask.checkPlayer(player);
+                }
             }
 
             visibility.refreshAll();
