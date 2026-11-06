@@ -1,3 +1,4 @@
+
 package id.deathrealm;
 
 import org.bukkit.Bukkit;
@@ -12,7 +13,6 @@ public class DeathRealmTimerTask {
 
     private final DeathRealm plugin;
     private final DeathTimerManager timerManager;
-    private final DeathRealmResurrection resurrection;
 
     private final Set<UUID> processed = new HashSet<>();
 
@@ -25,7 +25,6 @@ public class DeathRealmTimerTask {
     ) {
         this.plugin = plugin;
         this.timerManager = timerManager;
-        this.resurrection = resurrection;
     }
 
     public void start() {
@@ -58,10 +57,26 @@ public class DeathRealmTimerTask {
                 continue;
             }
 
-            boolean started = resurrection.resurrect(player);
+            timerManager.unlockTrial(uuid);
 
-            if (started) {
+            if (timerManager.isTrialUnlocked(uuid)) {
                 processed.add(uuid);
+
+                player.sendTitle(
+                        "§5UJIAN KEBANGKITAN",
+                        "§dKumpulkan 3 Fragmen Jiwa",
+                        10,
+                        70,
+                        20
+                );
+
+                player.sendMessage(
+                        "§5[ALAMKACUNG] §dUjian kebangkitanmu telah terbuka!"
+                );
+
+                player.sendMessage(
+                        "§7Temukan tiga Fragmen Jiwa untuk kembali hidup."
+                );
             }
         }
     }
