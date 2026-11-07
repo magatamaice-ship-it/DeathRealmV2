@@ -933,4 +933,27 @@ public class DeathRealmFriendRevivalManager implements Listener {
             }
         }
     }
+public void stop() {
+    // Hentikan semua ritual yang sedang berjalan.
+    for (BukkitTask task : activeRituals.values()) {
+        if (task != null) {
+            task.cancel();
+        }
+    }
+
+    activeRituals.clear();
+
+    // Hilangkan semua BossBar ritual.
+    for (BossBar bossBar : ritualBossBars.values()) {
+        if (bossBar != null) {
+            bossBar.removeAll();
+            bossBar.setVisible(false);
+        }
+    }
+
+    ritualBossBars.clear();
+
+    // Simpan data refund dan kebangkitan tertunda.
+    save();
+}
 }
