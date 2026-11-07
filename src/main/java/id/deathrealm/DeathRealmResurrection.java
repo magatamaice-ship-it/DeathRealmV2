@@ -1,8 +1,8 @@
-
 package id.deathrealm;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -13,6 +13,7 @@ import org.bukkit.potion.PotionEffect;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
 public class DeathRealmResurrection {
@@ -43,11 +44,28 @@ public class DeathRealmResurrection {
     }
 
     public boolean resurrect(Player player) {
-        return resurrect(player, null);
+        return resurrect(player, (Consumer<Boolean>) null);
     }
 
     public boolean resurrect(
             Player player,
+            Consumer<Boolean> onComplete
+    ) {
+        return resurrectInternal(player, null, onComplete);
+    }
+
+    // Digunakan untuk kebangkitan melalui ritual teman.
+    public boolean resurrect(
+            Player player,
+            Location destination,
+            Consumer<Boolean> onComplete
+    ) {
+        return resurrectInternal(player, destination, onComplete);
+    }
+
+    private boolean resurrectInternal(
+            Player player,
+            Location requestedDestination,
             Consumer<Boolean> onComplete
     ) {
         if (player == null || !player.isOnline()) {
@@ -63,7 +81,9 @@ public class DeathRealmResurrection {
             return false;
         }
 
-        Location destination = findDestination(player);
+        Location destination = requestedDestination == null
+                ? findDestination()
+                : findSafeLocation(requestedDestination);
 
         if (destination == null) {
             plugin.getLogger().severe(
@@ -97,11 +117,9 @@ public class DeathRealmResurrection {
 
                 if (!teleported) {
                     resurrecting.remove(uuid);
-
                     player.sendMessage(
                             "§cKebangkitan gagal. Jiwamu masih berada di DeathRealm."
                     );
-
                     notifyResult(onComplete, false);
                     return;
                 }
@@ -110,18 +128,13 @@ public class DeathRealmResurrection {
                 plugin.getSoulFragmentManager().resetTrial(uuid);
 
                 timerManager.removeTimer(uuid);
-
                 bossBar.hide(player);
 
                 restoreLivingPlayer(player);
 
-                // Pastikan status normal diterapkan setelah event teleport selesai.
                 Bukkit.getScheduler().runTask(plugin, () -> {
-                    if (!player.isOnline()) {
-                        return;
-                    }
-
-                    if (player.getWorld().getName()
+                    if (!player.isOnline()
+                            || player.getWorld().getName()
                             .equalsIgnoreCase("DeathRealm")) {
                         return;
                     }
@@ -152,8 +165,7 @@ public class DeathRealmResurrection {
 
         return true;
     }
-
-    private void restoreLivingPlayer(Player player) {
+        private void restoreLivingPlayer(Player player) {
         player.setInvulnerable(false);
         player.setNoDamageTicks(0);
 
@@ -167,8 +179,6 @@ public class DeathRealmResurrection {
 
         player.setHealth(player.getMaxHealth());
         player.setFoodLevel(20);
-
-        // Saturation nol agar hunger kembali berkurang secara normal.
         player.setSaturation(0);
         player.setExhaustion(0);
 
@@ -188,15 +198,9 @@ public class DeathRealmResurrection {
         }
     }
 
-    private Location findDestination(Player player) {
-        Location bed = player.getBedSpawnLocation();
-
-        Location safeBed = findSafeLocation(bed);
-
-        if (safeBed != null) {
-            return safeBed;
-        }
-
+    // Kebangkitan sendiri menggunakan lokasi acak.
+    // Tidak menggunakan bed atau world spawn.
+    private Location findDestination() {
         World mainWorld = null;
 
         for (World world : Bukkit.getWorlds()) {
@@ -210,7 +214,56 @@ public class DeathRealmResurrection {
             return null;
         }
 
-        return findSafeLocation(mainWorld.getSpawnLocation());
+        var border = mainWorld.getWorldBorder();
+
+        double centerX = border.getCenter().getX();
+        double centerZ = border.getCenter().getZ();
+        double halfSize = border.getSize() / 2.0;
+
+        double margin = Math.min(16.0, halfSize / 4.0);
+
+        double minX = centerX - halfSize + margin;
+        double maxX = centerX + halfSize - margin;
+        double minZ = centerZ - halfSize + margin;
+        double maxZ = centerZ + halfSize - margin;
+
+        if (minX >= maxX || minZ >= maxZ) {
+            return null;
+        }
+
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+
+        // Mencoba beberapa lokasi sampai menemukan permukaan aman.
+        for (int attempt = 0; attempt < 120; attempt++) {
+            int x = (int) Math.floor(
+                    random.nextDouble(minX, maxX)
+            );
+
+            int z = (int) Math.floor(
+                    random.nextDouble(minZ, maxZ)
+            );
+
+            Block highest = mainWorld.getHighestBlockAt(
+                    x,
+                    z,
+                    HeightMap.MOTION_BLOCKING_NO_LEAVES
+            );
+
+            Location candidate = new Location(
+                    mainWorld,
+                    x + 0.5,
+                    highest.getY() + 1,
+                    z + 0.5
+            );
+
+            Location safe = findSafeLocation(candidate);
+
+            if (safe != null) {
+                return safe;
+            }
+        }
+
+        return null;
     }
 
     private Location findSafeLocation(Location base) {
@@ -221,7 +274,6 @@ public class DeathRealmResurrection {
         World world = base.getWorld();
 
         for (int height = 0; height <= 5; height++) {
-
             Location candidate = base.clone().add(0, height, 0);
 
             candidate.setX(candidate.getBlockX() + 0.5);
