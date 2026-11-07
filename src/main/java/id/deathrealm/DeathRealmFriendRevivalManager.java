@@ -1,4 +1,3 @@
-
 package id.deathrealm;
 
 import org.bukkit.Bukkit;
@@ -6,6 +5,8 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -210,8 +211,7 @@ public class DeathRealmFriendRevivalManager implements Listener {
         }
         return items;
     }
-
-    private void finishRitual(Player initiator, UUID targetId) {
+        private void finishRitual(Player initiator, UUID targetId) {
         BukkitTask task = activeRituals.remove(targetId);
         if (task != null) task.cancel();
 
@@ -238,13 +238,15 @@ public class DeathRealmFriendRevivalManager implements Listener {
                     return;
                 }
 
+                teleportToSummoningAltar(target);
+
                 pendingRefunds.remove(targetId);
                 save();
                 plugin.getSoulFragmentRitual().cancelRitual(targetId);
 
                 if (initiator.isOnline()) {
                     initiator.sendMessage(
-                            "§aRitual selesai! Target berhasil dibangkitkan."
+                            "§aRitual selesai! Target berhasil dibangkitkan di Altar Pemanggilan."
                     );
                 }
             });
@@ -259,16 +261,94 @@ public class DeathRealmFriendRevivalManager implements Listener {
 
         if (initiator.isOnline()) {
             initiator.sendMessage(
-                    "§aRitual berhasil! Jiwa target akan kembali saat ia masuk server."
+                    "§aRitual berhasil! Target akan dibangkitkan di Altar Pemanggilan saat masuk server."
             );
         }
+    }
+
+    private void teleportToSummoningAltar(Player player) {
+        if (player == null || !player.isOnline()) return;
+
+        Location altar = plugin.getAltarManager().getSummoningAltar();
+
+        if (altar == null || altar.getWorld() == null) {
+            player.sendMessage(
+                    "§cAltar Pemanggilan tidak ditemukan. Kamu tetap berada di lokasi kebangkitan biasa."
+            );
+            plugin.getLogger().warning(
+                    "Gagal memindahkan " + player.getName()
+                            + ": lokasi Altar Pemanggilan tidak ditemukan."
+            );
+            return;
+        }
+
+        Location destination = findSafeAltarLocation(altar);
+
+        if (destination == null) {
+            player.sendMessage(
+                    "§cLokasi Altar Pemanggilan tidak aman. Kamu tetap berada di lokasi kebangkitan biasa."
+            );
+            plugin.getLogger().warning(
+                    "Tidak ditemukan lokasi aman di atas Altar Pemanggilan."
+            );
+            return;
+        }
+
+        if (player.teleport(destination)) {
+            player.setFallDistance(0);
+            player.sendMessage(
+                    "§dJiwamu telah dipanggil kembali ke Altar Pemanggilan!"
+            );
+        } else {
+            player.sendMessage(
+                    "§cGagal memindahkanmu ke Altar Pemanggilan."
+            );
+        }
+    }
+
+    private Location findSafeAltarLocation(Location altar) {
+        if (altar == null || altar.getWorld() == null) return null;
+
+        World world = altar.getWorld();
+
+        for (int height = 1; height <= 5; height++) {
+            Location candidate = altar.clone().add(
+                    0.5,
+                    height,
+                    0.5
+            );
+
+            Block feet = candidate.getBlock();
+            Block head = candidate.clone().add(0, 1, 0).getBlock();
+            Block ground = candidate.clone().subtract(0, 1, 0).getBlock();
+
+            if (!world.getWorldBorder().isInside(candidate)) continue;
+            if (!feet.isPassable() || !head.isPassable()) continue;
+
+            Material groundType = ground.getType();
+
+            if (!groundType.isSolid()
+                    || groundType == Material.MAGMA_BLOCK
+                    || groundType == Material.CACTUS
+                    || groundType == Material.CAMPFIRE
+                    || groundType == Material.SOUL_CAMPFIRE
+                    || groundType == Material.FIRE
+                    || groundType == Material.SOUL_FIRE
+                    || groundType == Material.LAVA) {
+                continue;
+            }
+
+            return candidate;
+        }
+
+        return null;
     }
 
     private void cleanupOfflineTarget(UUID targetId) {
         plugin.getSoulFragmentDisplay().removeFragments(targetId);
         plugin.getSoulFragmentManager().resetTrial(targetId);
     }
-    
+
     public void cancelRitualForTarget(UUID targetId) {
         if (targetId == null || finishingRevival.contains(targetId)) return;
 
@@ -354,9 +434,8 @@ public class DeathRealmFriendRevivalManager implements Listener {
                     center, Sound.BLOCK_END_PORTAL_SPAWN, 1.0f, 1.0f
             );
         }
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
+            }
+        @EventHandler(priority = EventPriority.MONITOR)
     public void onTargetJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
@@ -388,12 +467,14 @@ public class DeathRealmFriendRevivalManager implements Listener {
                     return;
                 }
 
+                teleportToSummoningAltar(player);
+
                 pendingRevival.remove(uuid);
                 save();
 
                 if (player.isOnline()) {
                     player.sendMessage(
-                            "§aRitual temanmu berhasil. Kamu telah kembali ke dunia kehidupan!"
+                            "§aRitual temanmu berhasil. Kamu telah kembali melalui Altar Pemanggilan!"
                     );
                 }
             });
@@ -411,8 +492,6 @@ public class DeathRealmFriendRevivalManager implements Listener {
         for (Map.Entry<UUID, RefundData> entry : pendingRefunds.entrySet()) {
             UUID targetId = entry.getKey();
 
-            // Jangan refund jika ritual target masih berjalan
-            // atau proses kebangkitannya sedang diselesaikan.
             if (activeRituals.containsKey(targetId)
                     || finishingRevival.contains(targetId)) {
                 continue;
@@ -636,4 +715,4 @@ public class DeathRealmFriendRevivalManager implements Listener {
             }
         }
     }
-                            }
+            }
