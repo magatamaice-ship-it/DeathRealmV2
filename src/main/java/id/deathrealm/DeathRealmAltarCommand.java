@@ -1,4 +1,3 @@
-
 package id.deathrealm;
 
 import org.bukkit.Bukkit;
@@ -40,9 +39,7 @@ public class DeathRealmAltarCommand implements CommandExecutor {
             String[] args
     ) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(
-                    "Perintah ini hanya bisa digunakan pemain."
-            );
+            sender.sendMessage("Perintah ini hanya bisa digunakan pemain.");
             return true;
         }
 
@@ -60,7 +57,6 @@ public class DeathRealmAltarCommand implements CommandExecutor {
 
             case "bangkit":
             case "intanhidup":
-
                 if (args.length != 2) {
                     player.sendMessage(
                             "§cGunakan: /alamkacung intanhidup <nama_pemain>"
@@ -72,7 +68,6 @@ public class DeathRealmAltarCommand implements CommandExecutor {
                 break;
 
             case "skip":
-
                 if (args.length != 2) {
                     player.sendMessage(
                             "§cGunakan: /alamkacung skip <nama_pemain>"
@@ -84,95 +79,22 @@ public class DeathRealmAltarCommand implements CommandExecutor {
                 break;
 
             case "setpemanggilan":
-
-                if (isDeathRealm(player.getLocation())) {
-                    player.sendMessage(
-                            "§cAltar Pemanggilan harus berada di dunia utama!"
-                    );
-                    return true;
-                }
-
-                Block summoningBlock = player.getTargetBlockExact(10);
-
-                if (summoningBlock == null) {
-                    player.sendMessage(
-                            "§cArahkan pandangan ke blok altar terlebih dahulu!"
-                    );
-                    return true;
-                }
-
-                altarManager.setSummoningAltar(
-                        summoningBlock.getLocation()
-                );
-
-                player.sendMessage(
-                        "§aLokasi Altar Pemanggilan berhasil disimpan!"
-                );
+                setSummoningAltar(player);
                 break;
 
             case "setkelahiran":
-
-                if (!isDeathRealm(player.getLocation())) {
-                    player.sendMessage(
-                            "§cAltar Kelahiran harus berada di ALAMKACUNG!"
-                    );
-                    return true;
-                }
-
-                Block rebirthBlock = player.getTargetBlockExact(10);
-
-                if (rebirthBlock == null) {
-                    player.sendMessage(
-                            "§cArahkan pandangan ke blok altar terlebih dahulu!"
-                    );
-                    return true;
-                }
-
-                altarManager.setRebirthAltar(
-                        rebirthBlock.getLocation()
-                );
-
-                player.sendMessage(
-                        "§aLokasi Altar Kelahiran berhasil disimpan!"
-                );
-                player.sendMessage(
-                        "§7Blok altar: §f"
-                                + rebirthBlock.getType().name()
-                );
+                setRebirthAltar(player);
                 break;
 
             case "setportalmasuk":
-
-                if (isDeathRealm(player.getLocation())) {
-                    player.sendMessage(
-                            "§cPortal masuk harus berada di dunia utama!"
-                    );
-                    return true;
-                }
-
-                portalManager.setPortalEntry(player.getLocation());
-                player.sendMessage(
-                        "§aLokasi portal masuk berhasil disimpan!"
-                );
+                setPortalEntry(player);
                 break;
 
             case "setportalkeluar":
-
-                if (!isDeathRealm(player.getLocation())) {
-                    player.sendMessage(
-                            "§cPortal keluar harus berada di ALAMKACUNG!"
-                    );
-                    return true;
-                }
-
-                portalManager.setPortalExit(player.getLocation());
-                player.sendMessage(
-                        "§aLokasi portal keluar berhasil disimpan!"
-                );
+                setPortalExit(player);
                 break;
 
             case "setsyarat":
-
                 if (args.length != 2) {
                     player.sendMessage(
                             "§cGunakan: /alamkacung setsyarat <jumlah>"
@@ -185,16 +107,12 @@ public class DeathRealmAltarCommand implements CommandExecutor {
                 try {
                     amount = Integer.parseInt(args[1]);
                 } catch (NumberFormatException exception) {
-                    player.sendMessage(
-                            "§cJumlah harus berupa angka."
-                    );
+                    player.sendMessage("§cJumlah harus berupa angka.");
                     return true;
                 }
 
                 if (amount <= 0) {
-                    player.sendMessage(
-                            "§cJumlah harus lebih dari 0."
-                    );
+                    player.sendMessage("§cJumlah harus lebih dari 0.");
                     return true;
                 }
 
@@ -202,9 +120,7 @@ public class DeathRealmAltarCommand implements CommandExecutor {
                     player.sendMessage(
                             "§aItem berhasil didaftarkan sebagai syarat ritual!"
                     );
-                    player.sendMessage(
-                            "§7Jumlah kebutuhan: §e" + amount
-                    );
+                    player.sendMessage("§7Jumlah kebutuhan: §e" + amount);
                 } else {
                     player.sendMessage(
                             "§cPegang item terlebih dahulu atau item sudah terdaftar."
@@ -213,7 +129,6 @@ public class DeathRealmAltarCommand implements CommandExecutor {
                 break;
 
             case "hapus":
-
                 if (args.length != 2) {
                     player.sendMessage(
                             "§cGunakan: /alamkacung hapus <nomor>"
@@ -226,9 +141,7 @@ public class DeathRealmAltarCommand implements CommandExecutor {
                 try {
                     index = Integer.parseInt(args[1]);
                 } catch (NumberFormatException exception) {
-                    player.sendMessage(
-                            "§cNomor harus berupa angka."
-                    );
+                    player.sendMessage("§cNomor harus berupa angka.");
                     return true;
                 }
 
@@ -245,10 +158,8 @@ public class DeathRealmAltarCommand implements CommandExecutor {
                 break;
 
             case "lihatsyarat":
-
                 List<DeathRealmFriendRevivalManager.Requirement>
-                        requirements =
-                        requirementManager.getRequirements();
+                        requirements = requirementManager.getRequirements();
 
                 player.sendMessage("§6§lPERSYARATAN RITUAL");
 
@@ -273,11 +184,9 @@ public class DeathRealmAltarCommand implements CommandExecutor {
                     player.sendMessage(
                             "§e" + (i + 1) + ". §f" + itemName
                     );
-
                     player.sendMessage(
                             "   §7Material: §f" + item.getType().name()
                     );
-
                     player.sendMessage(
                             "   §7Jumlah: §b" + requirement.getAmount()
                     );
@@ -298,6 +207,113 @@ public class DeathRealmAltarCommand implements CommandExecutor {
         }
 
         return true;
+    }
+        private void setSummoningAltar(Player player) {
+        Block block = player.getTargetBlockExact(10);
+
+        if (block == null) {
+            player.sendMessage(
+                    "§cArahkan pandangan ke blok altar terlebih dahulu!"
+            );
+            return;
+        }
+
+        if (isDeathRealm(block.getLocation())) {
+            player.sendMessage(
+                    "§cAltar Pemanggilan harus berada di dunia utama!"
+            );
+            return;
+        }
+
+        altarManager.setSummoningAltar(block.getLocation());
+
+        player.sendMessage(
+                "§aLokasi Altar Pemanggilan berhasil disimpan!"
+        );
+        player.sendMessage(
+                "§7Blok: §f" + block.getType().name()
+        );
+    }
+
+    private void setRebirthAltar(Player player) {
+        Block block = player.getTargetBlockExact(10);
+
+        if (block == null) {
+            player.sendMessage(
+                    "§cArahkan pandangan ke blok altar terlebih dahulu!"
+            );
+            return;
+        }
+
+        if (!isDeathRealm(block.getLocation())) {
+            player.sendMessage(
+                    "§cAltar Kelahiran harus berada di ALAMKACUNG!"
+            );
+            return;
+        }
+
+        altarManager.setRebirthAltar(block.getLocation());
+
+        player.sendMessage(
+                "§aLokasi Altar Kelahiran berhasil disimpan!"
+        );
+        player.sendMessage(
+                "§7Blok altar: §f" + block.getType().name()
+        );
+    }
+
+    private void setPortalEntry(Player player) {
+        Block block = player.getTargetBlockExact(10);
+
+        if (block == null) {
+            player.sendMessage(
+                    "§cArahkan pandangan ke blok portal terlebih dahulu!"
+            );
+            return;
+        }
+
+        if (isDeathRealm(block.getLocation())) {
+            player.sendMessage(
+                    "§cPortal masuk harus berada di dunia utama!"
+            );
+            return;
+        }
+
+        portalManager.setPortalEntry(block.getLocation());
+
+        player.sendMessage(
+                "§aLokasi portal masuk berhasil disimpan!"
+        );
+        player.sendMessage(
+                "§7Blok: §f" + block.getType().name()
+        );
+    }
+
+    private void setPortalExit(Player player) {
+        Block block = player.getTargetBlockExact(10);
+
+        if (block == null) {
+            player.sendMessage(
+                    "§cArahkan pandangan ke blok portal terlebih dahulu!"
+            );
+            return;
+        }
+
+        if (!isDeathRealm(block.getLocation())) {
+            player.sendMessage(
+                    "§cPortal keluar harus berada di ALAMKACUNG!"
+            );
+            return;
+        }
+
+        portalManager.setPortalExit(block.getLocation());
+
+        player.sendMessage(
+                "§aLokasi portal keluar berhasil disimpan!"
+        );
+        player.sendMessage(
+                "§7Blok: §f" + block.getType().name()
+        );
     }
 
     private void resurrectPlayer(Player admin, String targetName) {
@@ -323,18 +339,14 @@ public class DeathRealmAltarCommand implements CommandExecutor {
         World mainWorld = getMainWorld();
 
         if (mainWorld == null) {
-            admin.sendMessage(
-                    "§cDunia utama tidak ditemukan."
-            );
+            admin.sendMessage("§cDunia utama tidak ditemukan.");
             return;
         }
 
         Location destination = mainWorld.getSpawnLocation();
 
         if (!target.teleport(destination)) {
-            admin.sendMessage(
-                    "§cGagal memindahkan pemain."
-            );
+            admin.sendMessage("§cGagal memindahkan pemain.");
             return;
         }
 
@@ -353,10 +365,12 @@ public class DeathRealmAltarCommand implements CommandExecutor {
         target.setGameMode(GameMode.SURVIVAL);
         target.setFlying(false);
         target.setAllowFlight(false);
+        target.setInvulnerable(false);
         target.setHealth(target.getMaxHealth());
         target.setFoodLevel(20);
         target.setSaturation(20);
         target.setFallDistance(0);
+        target.setNoDamageTicks(0);
 
         admin.sendMessage(
                 "§aBerhasil membangkitkan §e"
@@ -367,8 +381,7 @@ public class DeathRealmAltarCommand implements CommandExecutor {
                 "§aAdmin telah membangkitkanmu kembali ke dunia kehidupan!"
         );
     }
-
-    private void skipFirstStage(Player admin, String targetName) {
+        private void skipFirstStage(Player admin, String targetName) {
         Player target = Bukkit.getPlayerExact(targetName);
 
         if (target == null) {
@@ -431,13 +444,8 @@ public class DeathRealmAltarCommand implements CommandExecutor {
                 20
         );
 
-        target.sendMessage(
-                "§6§lTAHAP 1 DILEWATI!"
-        );
-
-        target.sendMessage(
-                "§eAdmin telah membuka Tahap 2."
-        );
+        target.sendMessage("§6§lTAHAP 1 DILEWATI!");
+        target.sendMessage("§eAdmin telah membuka Tahap 2.");
 
         target.sendMessage(
                 "§7Fragmen terkumpul: §f"
